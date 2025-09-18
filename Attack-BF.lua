@@ -1,1 +1,1 @@
-warn("script is fix")
+warn("script is erorr")
