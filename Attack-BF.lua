@@ -1,1 +1,0 @@
-warn("script is erorr")
