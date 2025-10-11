@@ -1,4 +1,4 @@
--- AutoFarm single-file minified
+-- AutoFarm single-file minified (corrected)
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Workspace=game:GetService("Workspace")
@@ -13,7 +13,6 @@ local DEBUG=true
 local function dbg(...) if DEBUG then print("[AF]",...) end end
 local function warn(...) if DEBUG then warn("[AF]",...) end end
 
--- find registers
 local function findRegisters()
   local ra,rh
   for _,v in pairs(ReplicatedStorage:GetDescendants()) do
@@ -25,7 +24,6 @@ end
 local RegisterAttack,RegisterHit=findRegisters()
 dbg("RegisterAttack:",tostring(RegisterAttack),"RegisterHit:",tostring(RegisterHit))
 
--- load Quests module
 local function loadQuestsModule()
   local q=ReplicatedStorage:FindFirstChild("Quests")
   if q and q:IsA("ModuleScript") then local ok,res=pcall(require,q) if ok then return res end end
@@ -35,7 +33,6 @@ end
 local QuestsModule=loadQuestsModule()
 if QuestsModule then dbg("Quests module loaded") else warn("Quests module not found") end
 
--- helpers
 local function getLevel()
   local lvl
   pcall(function() if player:FindFirstChild("Data") and player.Data:FindFirstChild("Level") then lvl=player.Data.Level.Value end end)
@@ -77,9 +74,8 @@ local function findNearestMobByName(name,maxDist)
   return list[1],list
 end
 
--- smart move / tween + teleport
 local TP_THRESHOLD=250
-local TP_TWEEN_SPEED=900
+local TP_TWEEN_SPEED=350
 local function smartMoveTo(pos)
   if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
   local hrp=player.Character.HumanoidRootPart
@@ -94,14 +90,12 @@ local function smartMoveTo(pos)
   pcall(function() hrp.CFrame=CFrame.new(pos+Vector3.new(0,3,0)) end)
 end
 
--- equip via Combat:EquipEvent fallback
 local function tryCombatEquipEvent()
   local obj=(player.Character and player.Character:FindFirstChild("Combat")) or (player:FindFirstChild("Backpack") and player.Backpack:FindFirstChild("Combat"))
   if obj and obj:FindFirstChild("EquipEvent") then pcall(function() obj.EquipEvent:FireServer(true) end) dbg("Fired Combat:EquipEvent(true)") return true end
   return false
 end
 
--- fire tool or RegisterHit/Attack
 local function fireToolOrRegister(tool,targetPart)
   if tool then
     for _,v in pairs(tool:GetDescendants()) do
@@ -116,7 +110,6 @@ local function fireToolOrRegister(tool,targetPart)
   if RegisterHit and targetPart and _G.AutoAttack then pcall(function() RegisterHit:FireServer(targetPart) end) end
 end
 
--- ensure equip (try event, then backpack)
 local function ensureEquip()
   tryCombatEquipEvent()
   task.wait(0.12)
@@ -132,9 +125,8 @@ local function ensureEquip()
   return nil
 end
 
--- bring group up to limit
 local BRING_LIMIT=2
-local BRING_DISTANCE=520
+local BRING_DISTANCE=340
 local function bringGroup(mobName)
   if not _G.BringEnabled then return end
   if not Workspace:FindFirstChild("Enemies") then return end
@@ -156,7 +148,6 @@ local function bringGroup(mobName)
   end
 end
 
--- small status UI + main GUI
 local function buildUI()
   local sg=Instance.new("ScreenGui",playerGui); sg.Name="AutoFarm_MinUI"; sg.ResetOnSpawn=false
   local f=Instance.new("Frame",sg); f.Size=UDim2.new(0,320,0,180); f.Position=UDim2.new(0.01,0,0.04,0); f.BackgroundColor3=Color3.fromRGB(20,20,20); f.BackgroundTransparency=0.08
@@ -173,7 +164,6 @@ end
 
 local UI=buildUI()
 
--- small status box
 local function makeStatus()
   local sg=Instance.new("ScreenGui",playerGui); sg.Name="AF_Status"; sg.ResetOnSpawn=false
   local f=Instance.new("Frame",sg); f.Size=UDim2.new(0,240,0,90); f.Position=UDim2.new(0.015,0,0.28,0); f.BackgroundColor3=Color3.fromRGB(18,18,18); f.BackgroundTransparency=0.08
@@ -185,7 +175,6 @@ local function makeStatus()
 end
 local Status=makeStatus()
 
--- watchers
 local active={key=nil,mob=nil,need=0,progress=0,started=false}
 local deathConns={}
 local function clearDeathConns() for _,c in pairs(deathConns) do pcall(function() c:Disconnect() end) end deathConns={} end
@@ -214,13 +203,10 @@ local function safeStartQuest(qKey)
   task.wait(0.08) if origin then smartMoveTo(origin.Position) end
 end
 
--- main loop
 task.spawn(function()
   dbg("AutoFarm loaded")
   while task.wait(0.5) do
-    -- update level label
     UI.lblLevel.Text="Level: "..tostring(getLevel() or "?")
-    -- proceed
     if not _G.AutoFarm or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
     local lvl=getLevel() if not lvl then task.wait(0.6) continue end
     local key,mobName,need=parseModuleForBest(lvl)
@@ -229,7 +215,6 @@ task.spawn(function()
     if active.key and not active.started then safeStartQuest(active.key) task.wait(0.12) watchDeaths(active.mob) refreshProgressFromServer(active.key) active.started=true end
     refreshProgressFromServer(active.key)
     if active.need>0 and active.progress>=active.need then dbg("Quest complete -> clearing"); active={key=nil,mob=nil,need=0,progress=0,started=false}; clearDeathConns(); Status.k.Text="Quest: -"; Status.m.Text="Mob: -"; Status.p.Text="Prog: 0/0"; task.wait(0.6); continue end
-    -- find nearest
     local CLOSE=220; local FAR=1200
     local mob,list=findNearestMobByName(active.mob,CLOSE)
     if not mob then local far,fl=findNearestMobByName(active.mob,FAR) if far then dbg("Far mob found -> move"); smartMoveTo(far.HumanoidRootPart.Position); task.wait(0.4); mob,list=findNearestMobByName(active.mob,CLOSE) else dbg("No mobs"),task.wait(1); continue end end
