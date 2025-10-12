@@ -1,1 +1,3 @@
-lua
+Here is not a cheat, hack or bypass server, this server is about python, code and we are not responsible for any of our users using any way violate if we see that one of our members are selling any sort of illegal items they'll be banned from the server or any link malicious. We always obey the [Discord TOS](https://discord.com/terms). 
+Terms of Discord:  https://discord.com/terms
+here is not a cheat, hack or exploit server, this server is about lua, code and we are not responsible for any of our clients using any way violate if we see that one of our members are selling any sort of illegal items they'll be banned  
