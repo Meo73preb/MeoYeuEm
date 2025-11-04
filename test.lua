@@ -1,22 +1,39 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
 
 local Fluent = {}
 Fluent.__index = Fluent
 
 -- Utility Functions
 local function Tween(object, properties, duration, style)
-	local tweenInfo = TweenInfo.new(duration or 0.1, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tweenInfo = TweenInfo.new(duration or 0.3, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(object, tweenInfo, properties)
 	tween:Play()
 	return tween
 end
 
-local function MakeDraggable(frame)
+local function AddGlow(parent, color)
+	local Glow = Instance.new("ImageLabel")
+	Glow.Name = "Glow"
+	Glow.Parent = parent
+	Glow.BackgroundTransparency = 1
+	Glow.Position = UDim2.new(0, -15, 0, -15)
+	Glow.Size = UDim2.new(1, 30, 1, 30)
+	Glow.ZIndex = 0
+	Glow.Image = "rbxassetid://16300778179"
+	Glow.ImageColor3 = color or Color3.fromRGB(120, 80, 255)
+	Glow.ImageTransparency = 0.7
+	Glow.ScaleType = Enum.ScaleType.Slice
+	Glow.SliceCenter = Rect.new(10, 10, 118, 118)
+	return Glow
+end
+
+local function MakeDraggable(frame, dragHandle)
 	local dragging, dragInput, dragStart, startPos
 	
-	frame.InputBegan:Connect(function(input)
+	dragHandle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
 			dragStart = input.Position
@@ -30,11 +47,528 @@ local function MakeDraggable(frame)
 		end
 	end)
 	
-	frame.InputChanged:Connect(function(input)
+	dragHandle.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			dragInput = input
 		end
 	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			Tween(frame, {
+				Position = UDim2.new(
+					startPos.X.Scale, 
+					startPos.X.Offset + delta.X, 
+					startPos.Y.Scale, 
+					startPos.Y.Offset + delta.Y
+				)
+			}, 0.15, Enum.EasingStyle.Sine)
+		end
+	end)
+end
+
+-- Create Window
+function Fluent:CreateWindow(config)
+	config = config or {}
+	local WindowName = config.Title or "Fluent UI"
+	local WindowVersion = config.Version or "v1.0.0"
+	local WindowSubtitle = config.Subtitle or "Modern UI Library"
+	
+	-- ScreenGui
+	local FluentUI = Instance.new("ScreenGui")
+	FluentUI.Name = "FluentUI"
+	FluentUI.Parent = CoreGui
+	FluentUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	FluentUI.ResetOnSpawn = false
+	
+	-- Main Frame
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Name = "MainFrame"
+	MainFrame.Parent = FluentUI
+	MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	MainFrame.Size = UDim2.new(0, 0, 0, 0)
+	MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+	MainFrame.BorderSizePixel = 0
+	MainFrame.ClipsDescendants = true
+	
+	local MainCorner = Instance.new("UICorner")
+	MainCorner.CornerRadius = UDim.new(0, 16)
+	MainCorner.Parent = MainFrame
+	
+	local MainStroke = Instance.new("UIStroke")
+	MainStroke.Color = Color3.fromRGB(80, 60, 120)
+	MainStroke.Thickness = 1.5
+	MainStroke.Transparency = 0.5
+	MainStroke.Parent = MainFrame
+	
+	-- Animated gradient stroke
+	local StrokeGradient = Instance.new("UIGradient")
+	StrokeGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 80, 255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 120, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 80, 255))
+	}
+	StrokeGradient.Parent = MainStroke
+	
+	spawn(function()
+		while MainFrame.Parent do
+			for i = 0, 360, 2 do
+				if not MainFrame.Parent then break end
+				StrokeGradient.Rotation = i
+				RunService.RenderStepped:Wait()
+			end
+		end
+	end)
+	
+	-- Enhanced Shadow
+	local Shadow = Instance.new("ImageLabel")
+	Shadow.Name = "Shadow"
+	Shadow.Parent = MainFrame
+	Shadow.BackgroundTransparency = 1
+	Shadow.Position = UDim2.new(0, -25, 0, -25)
+	Shadow.Size = UDim2.new(1, 50, 1, 50)
+	Shadow.ZIndex = 0
+	Shadow.Image = "rbxassetid://6014261993"
+	Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	Shadow.ImageTransparency = 0.3
+	Shadow.ScaleType = Enum.ScaleType.Slice
+	Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+	
+	-- Glow Effect
+	AddGlow(MainFrame, Color3.fromRGB(100, 70, 200))
+	
+	-- Background Gradient
+	local BgGradient = Instance.new("UIGradient")
+	BgGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 20)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 15, 25))
+	}
+	BgGradient.Rotation = 135
+	BgGradient.Parent = MainFrame
+	
+	-- Header
+	local Header = Instance.new("Frame")
+	Header.Name = "Header"
+	Header.Parent = MainFrame
+	Header.Size = UDim2.new(1, 0, 0, 60)
+	Header.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+	Header.BackgroundTransparency = 0.2
+	Header.BorderSizePixel = 0
+	
+	local HeaderCorner = Instance.new("UICorner")
+	HeaderCorner.CornerRadius = UDim.new(0, 16)
+	HeaderCorner.Parent = Header
+	
+	local HeaderGradient = Instance.new("UIGradient")
+	HeaderGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 20, 35)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 28))
+	}
+	HeaderGradient.Rotation = 90
+	HeaderGradient.Parent = Header
+	
+	local HeaderBottom = Instance.new("Frame")
+	HeaderBottom.Parent = Header
+	HeaderBottom.Position = UDim2.new(0, 0, 1, -16)
+	HeaderBottom.Size = UDim2.new(1, 0, 0, 16)
+	HeaderBottom.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+	HeaderBottom.BackgroundTransparency = 0.2
+	HeaderBottom.BorderSizePixel = 0
+	
+	-- Accent Line
+	local AccentLine = Instance.new("Frame")
+	AccentLine.Name = "AccentLine"
+	AccentLine.Parent = Header
+	AccentLine.Position = UDim2.new(0, 0, 1, -2)
+	AccentLine.Size = UDim2.new(1, 0, 0, 2)
+	AccentLine.BorderSizePixel = 0
+	
+	local AccentGradient = Instance.new("UIGradient")
+	AccentGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 80, 255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 120, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 80, 255))
+	}
+	AccentGradient.Parent = AccentLine
+	
+	-- Logo with animation
+	local Logo = Instance.new("Frame")
+	Logo.Name = "Logo"
+	Logo.Parent = Header
+	Logo.Position = UDim2.new(0, 20, 0.5, -18)
+	Logo.Size = UDim2.new(0, 36, 0, 36)
+	Logo.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+	Logo.BorderSizePixel = 0
+	
+	local LogoCorner = Instance.new("UICorner")
+	LogoCorner.CornerRadius = UDim.new(0, 10)
+	LogoCorner.Parent = Logo
+	
+	local LogoGradient = Instance.new("UIGradient")
+	LogoGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 90, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 140, 255))
+	}
+	LogoGradient.Rotation = 45
+	LogoGradient.Parent = Logo
+	
+	-- Logo Icon
+	local LogoIcon = Instance.new("ImageLabel")
+	LogoIcon.Parent = Logo
+	LogoIcon.BackgroundTransparency = 1
+	LogoIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
+	LogoIcon.Position = UDim2.new(0.15, 0, 0.15, 0)
+	LogoIcon.Image = "rbxassetid://10723407389"
+	LogoIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+	
+	-- Pulse animation for logo
+	spawn(function()
+		while Logo.Parent do
+			Tween(Logo, {Size = UDim2.new(0, 38, 0, 38)}, 0.8, Enum.EasingStyle.Sine)
+			wait(0.8)
+			Tween(Logo, {Size = UDim2.new(0, 36, 0, 36)}, 0.8, Enum.EasingStyle.Sine)
+			wait(0.8)
+		end
+	end)
+	
+	-- Title Container
+	local TitleContainer = Instance.new("Frame")
+	TitleContainer.Parent = Header
+	TitleContainer.Position = UDim2.new(0, 65, 0, 10)
+	TitleContainer.Size = UDim2.new(0, 250, 1, -20)
+	TitleContainer.BackgroundTransparency = 1
+	
+	local Title = Instance.new("TextLabel")
+	Title.Name = "Title"
+	Title.Parent = TitleContainer
+	Title.Size = UDim2.new(1, 0, 0, 22)
+	Title.BackgroundTransparency = 1
+	Title.Text = WindowName
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.TextSize = 17
+	Title.Font = Enum.Font.GothamBold
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+	Title.TextTransparency = 0
+	
+	local TitleGradient = Instance.new("UIGradient")
+	TitleGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 255))
+	}
+	TitleGradient.Parent = Title
+	
+	local Subtitle = Instance.new("TextLabel")
+	Subtitle.Name = "Subtitle"
+	Subtitle.Parent = TitleContainer
+	Subtitle.Position = UDim2.new(0, 0, 0, 22)
+	Subtitle.Size = UDim2.new(1, 0, 0, 16)
+	Subtitle.BackgroundTransparency = 1
+	Subtitle.Text = WindowSubtitle
+	Subtitle.TextColor3 = Color3.fromRGB(150, 150, 180)
+	Subtitle.TextSize = 12
+	Subtitle.Font = Enum.Font.Gotham
+	Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local Version = Instance.new("TextLabel")
+	Version.Name = "Version"
+	Version.Parent = TitleContainer
+	Version.Position = UDim2.new(0, 0, 1, -16)
+	Version.Size = UDim2.new(1, 0, 0, 14)
+	Version.BackgroundTransparency = 1
+	Version.Text = "⚡ " .. WindowVersion
+	Version.TextColor3 = Color3.fromRGB(120, 80, 255)
+	Version.TextSize = 11
+	Version.Font = Enum.Font.GothamBold
+	Version.TextXAlignment = Enum.TextXAlignment.Left
+	
+	-- Close Button
+	local CloseButton = Instance.new("TextButton")
+	CloseButton.Name = "CloseButton"
+	CloseButton.Parent = Header
+	CloseButton.AnchorPoint = Vector2.new(1, 0.5)
+	CloseButton.Position = UDim2.new(1, -15, 0.5, 0)
+	CloseButton.Size = UDim2.new(0, 35, 0, 35)
+	CloseButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	CloseButton.BorderSizePixel = 0
+	CloseButton.Text = ""
+	CloseButton.AutoButtonColor = false
+	
+	local CloseCorner = Instance.new("UICorner")
+	CloseCorner.CornerRadius = UDim.new(0, 10)
+	CloseCorner.Parent = CloseButton
+	
+	local CloseIcon = Instance.new("ImageLabel")
+	CloseIcon.Parent = CloseButton
+	CloseIcon.BackgroundTransparency = 1
+	CloseIcon.Size = UDim2.new(0, 16, 0, 16)
+	CloseIcon.Position = UDim2.new(0.5, -8, 0.5, -8)
+	CloseIcon.Image = "rbxassetid://10747384394"
+	CloseIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+	
+	CloseButton.MouseEnter:Connect(function()
+		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(255, 60, 70)}, 0.2)
+		Tween(CloseButton, {Size = UDim2.new(0, 37, 0, 37)}, 0.2, Enum.EasingStyle.Back)
+	end)
+	
+	CloseButton.MouseLeave:Connect(function()
+		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}, 0.2)
+		Tween(CloseButton, {Size = UDim2.new(0, 35, 0, 35)}, 0.2)
+	end)
+	
+	CloseButton.MouseButton1Click:Connect(function()
+		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(200, 40, 50)}, 0.1)
+		Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back)
+		wait(0.4)
+		FluentUI:Destroy()
+	end)
+	
+	-- Minimize Button
+	local MinimizeButton = Instance.new("TextButton")
+	MinimizeButton.Name = "MinimizeButton"
+	MinimizeButton.Parent = Header
+	MinimizeButton.AnchorPoint = Vector2.new(1, 0.5)
+	MinimizeButton.Position = UDim2.new(1, -55, 0.5, 0)
+	MinimizeButton.Size = UDim2.new(0, 35, 0, 35)
+	MinimizeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	MinimizeButton.BorderSizePixel = 0
+	MinimizeButton.Text = ""
+	MinimizeButton.AutoButtonColor = false
+	
+	local MinimizeCorner = Instance.new("UICorner")
+	MinimizeCorner.CornerRadius = UDim.new(0, 10)
+	MinimizeCorner.Parent = MinimizeButton
+	
+	local MinimizeIcon = Instance.new("ImageLabel")
+	MinimizeIcon.Parent = MinimizeButton
+	MinimizeIcon.BackgroundTransparency = 1
+	MinimizeIcon.Size = UDim2.new(0, 16, 0, 16)
+	MinimizeIcon.Position = UDim2.new(0.5, -8, 0.5, -8)
+	MinimizeIcon.Image = "rbxassetid://10734896958"
+	MinimizeIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+	
+	MinimizeButton.MouseEnter:Connect(function()
+		Tween(MinimizeButton, {BackgroundColor3 = Color3.fromRGB(50, 50, 70)}, 0.2)
+		Tween(MinimizeButton, {Size = UDim2.new(0, 37, 0, 37)}, 0.2, Enum.EasingStyle.Back)
+	end)
+	
+	MinimizeButton.MouseLeave:Connect(function()
+		Tween(MinimizeButton, {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}, 0.2)
+		Tween(MinimizeButton, {Size = UDim2.new(0, 35, 0, 35)}, 0.2)
+	end)
+	
+	local minimized = false
+	MinimizeButton.MouseButton1Click:Connect(function()
+		minimized = not minimized
+		if minimized then
+			Tween(MainFrame, {Size = UDim2.new(0, 580, 0, 60)}, 0.4, Enum.EasingStyle.Quint)
+			Tween(MinimizeIcon, {Rotation = 180}, 0.3)
+		else
+			Tween(MainFrame, {Size = UDim2.new(0, 580, 0, 450)}, 0.4, Enum.EasingStyle.Quint)
+			Tween(MinimizeIcon, {Rotation = 0}, 0.3)
+		end
+	end)
+	
+	-- Tab Container
+	local TabContainer = Instance.new("Frame")
+	TabContainer.Name = "TabContainer"
+	TabContainer.Parent = MainFrame
+	TabContainer.Position = UDim2.new(0, 0, 0, 60)
+	TabContainer.Size = UDim2.new(0, 160, 1, -60)
+	TabContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+	TabContainer.BorderSizePixel = 0
+	
+	local TabBg = Instance.new("UIGradient")
+	TabBg.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 12, 18)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 15, 25))
+	}
+	TabBg.Rotation = 90
+	TabBg.Parent = TabContainer
+	
+	local TabList = Instance.new("UIListLayout")
+	TabList.Parent = TabContainer
+	TabList.SortOrder = Enum.SortOrder.LayoutOrder
+	TabList.Padding = UDim.new(0, 6)
+	
+	local TabPadding = Instance.new("UIPadding")
+	TabPadding.Parent = TabContainer
+	TabPadding.PaddingTop = UDim.new(0, 12)
+	TabPadding.PaddingLeft = UDim.new(0, 12)
+	TabPadding.PaddingRight = UDim.new(0, 12)
+	TabPadding.PaddingBottom = UDim.new(0, 12)
+	
+	-- Content Container
+	local ContentContainer = Instance.new("Frame")
+	ContentContainer.Name = "ContentContainer"
+	ContentContainer.Parent = MainFrame
+	ContentContainer.Position = UDim2.new(0, 160, 0, 60)
+	ContentContainer.Size = UDim2.new(1, -160, 1, -60)
+	ContentContainer.BackgroundTransparency = 1
+	ContentContainer.BorderSizePixel = 0
+	
+	-- Make draggable
+	MakeDraggable(MainFrame, Header)
+	
+	-- Animate opening
+	Tween(MainFrame, {Size = UDim2.new(0, 580, 0, 450)}, 0.6, Enum.EasingStyle.Back)
+	
+	local Window = {}
+	Window.Tabs = {}
+	Window.CurrentTab = nil
+	
+	function Window:AddTab(config)
+		config = config or {}
+		local TabName = config.Name or "Tab"
+		local TabIcon = config.Icon or "rbxassetid://10723407389"
+		
+		-- Tab Button
+		local TabButton = Instance.new("TextButton")
+		TabButton.Name = TabName
+		TabButton.Parent = TabContainer
+		TabButton.Size = UDim2.new(1, 0, 0, 42)
+		TabButton.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+		TabButton.BorderSizePixel = 0
+		TabButton.Text = ""
+		TabButton.AutoButtonColor = false
+		
+		local TabCorner = Instance.new("UICorner")
+		TabCorner.CornerRadius = UDim.new(0, 10)
+		TabCorner.Parent = TabButton
+		
+		local TabStroke = Instance.new("UIStroke")
+		TabStroke.Color = Color3.fromRGB(40, 40, 50)
+		TabStroke.Thickness = 1
+		TabStroke.Transparency = 0.8
+		TabStroke.Parent = TabButton
+		
+		-- Tab Icon
+		local TabIconFrame = Instance.new("ImageLabel")
+		TabIconFrame.Parent = TabButton
+		TabIconFrame.Position = UDim2.new(0, 12, 0.5, -10)
+		TabIconFrame.Size = UDim2.new(0, 20, 0, 20)
+		TabIconFrame.BackgroundTransparency = 1
+		TabIconFrame.Image = TabIcon
+		TabIconFrame.ImageColor3 = Color3.fromRGB(150, 150, 180)
+		
+		-- Tab Label
+		local TabLabel = Instance.new("TextLabel")
+		TabLabel.Parent = TabButton
+		TabLabel.Position = UDim2.new(0, 42, 0, 0)
+		TabLabel.Size = UDim2.new(1, -50, 1, 0)
+		TabLabel.BackgroundTransparency = 1
+		TabLabel.Text = TabName
+		TabLabel.TextColor3 = Color3.fromRGB(150, 150, 180)
+		TabLabel.TextSize = 13
+		TabLabel.Font = Enum.Font.GothamMedium
+		TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+		
+		-- Selection Indicator
+		local SelectionIndicator = Instance.new("Frame")
+		SelectionIndicator.Name = "SelectionIndicator"
+		SelectionIndicator.Parent = TabButton
+		SelectionIndicator.AnchorPoint = Vector2.new(0, 0.5)
+		SelectionIndicator.Position = UDim2.new(0, 0, 0.5, 0)
+		SelectionIndicator.Size = UDim2.new(0, 0, 0, 25)
+		SelectionIndicator.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+		SelectionIndicator.BorderSizePixel = 0
+		
+		local IndicatorCorner = Instance.new("UICorner")
+		IndicatorCorner.CornerRadius = UDim.new(0, 4)
+		IndicatorCorner.Parent = SelectionIndicator
+		
+		local IndicatorGradient = Instance.new("UIGradient")
+		IndicatorGradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 80, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 140, 255))
+		}
+		IndicatorGradient.Rotation = 90
+		IndicatorGradient.Parent = SelectionIndicator
+		
+		-- Tab Content
+		local TabContent = Instance.new("ScrollingFrame")
+		TabContent.Name = TabName .. "Content"
+		TabContent.Parent = ContentContainer
+		TabContent.Size = UDim2.new(1, 0, 1, 0)
+		TabContent.BackgroundTransparency = 1
+		TabContent.BorderSizePixel = 0
+		TabContent.ScrollBarThickness = 6
+		TabContent.ScrollBarImageColor3 = Color3.fromRGB(120, 80, 255)
+		TabContent.ScrollBarImageTransparency = 0.5
+		TabContent.Visible = false
+		TabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+		
+		local ContentList = Instance.new("UIListLayout")
+		ContentList.Parent = TabContent
+		ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+		ContentList.Padding = UDim.new(0, 10)
+		
+		local ContentPadding = Instance.new("UIPadding")
+		ContentPadding.Parent = TabContent
+		ContentPadding.PaddingTop = UDim.new(0, 15)
+		ContentPadding.PaddingLeft = UDim.new(0, 20)
+		ContentPadding.PaddingRight = UDim.new(0, 20)
+		ContentPadding.PaddingBottom = UDim.new(0, 15)
+		
+		ContentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentList.AbsoluteContentSize.Y + 30)
+		end)
+		
+		TabButton.MouseEnter:Connect(function()
+			if Window.CurrentTab ~= TabContent then
+				Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(25, 25, 35)}, 0.2)
+				Tween(TabIconFrame, {ImageColor3 = Color3.fromRGB(200, 200, 220)}, 0.2)
+				Tween(TabLabel, {TextColor3 = Color3.fromRGB(200, 200, 220)}, 0.2)
+			end
+		end)
+		
+		TabButton.MouseLeave:Connect(function()
+			if Window.CurrentTab ~= TabContent then
+				Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)}, 0.2)
+				Tween(TabIconFrame, {ImageColor3 = Color3.fromRGB(150, 150, 180)}, 0.2)
+				Tween(TabLabel, {TextColor3 = Color3.fromRGB(150, 150, 180)}, 0.2)
+			end
+		end)
+		
+		TabButton.MouseButton1Click:Connect(function()
+			for _, tab in pairs(Window.Tabs) do
+				Tween(tab.Button, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)}, 0.3)
+				Tween(tab.Icon, {ImageColor3 = Color3.fromRGB(150, 150, 180)}, 0.3)
+				Tween(tab.Label, {TextColor3 = Color3.fromRGB(150, 150, 180)}, 0.3)
+				Tween(tab.Indicator, {Size = UDim2.new(0, 0, 0, 25)}, 0.3)
+				Tween(tab.Stroke, {Transparency = 0.8}, 0.3)
+				tab.Content.Visible = false
+			end
+			
+			Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(30, 25, 40)}, 0.3)
+			Tween(TabIconFrame, {ImageColor3 = Color3.fromRGB(120, 80, 255)}, 0.3)
+			Tween(TabLabel, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.3)
+			Tween(SelectionIndicator, {Size = UDim2.new(0, 4, 0, 25)}, 0.3, Enum.EasingStyle.Back)
+			Tween(TabStroke, {Transparency = 0.3}, 0.3)
+			TabContent.Visible = true
+			Window.CurrentTab = TabContent
+		end)
+		
+		local Tab = {}
+		Tab.Button = TabButton
+		Tab.Content = TabContent
+		Tab.Icon = TabIconFrame
+		Tab.Label = TabLabel
+		Tab.Indicator = SelectionIndicator
+		Tab.Stroke = TabStroke
+		
+		function Tab:AddButton(config)
+			config = config or {}
+			local ButtonName = config.Name or "Button"
+			local ButtonDesc = config.Description
+			local Callback = config.Callback or function() end
+			
+			local ButtonFrame = Instance.new("Frame")
+			ButtonFrame.Name = ButtonName
+			ButtonFrame.Parent = TabContent
+			ButtonFrame.Size = UDim2.new(1, 0, 0, ButtonDesc and 60 or 45)
+			ButtonFrame.BackgroundColor	end)
 	
 	UserInputService.InputChanged:Connect(function(input)
 		if input == dragInput and dragging then
