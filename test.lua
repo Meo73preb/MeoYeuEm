@@ -1,237 +1,579 @@
--- AutoFarm single-file minified (corrected)
-local Players=game:GetService("Players")
-local ReplicatedStorage=game:GetService("ReplicatedStorage")
-local Workspace=game:GetService("Workspace")
-local TweenService=game:GetService("TweenService")
-local RunService=game:GetService("RunService")
-local player=Players.LocalPlayer
-local playerGui=player:WaitForChild("PlayerGui")
-_G.AutoFarm=_G.AutoFarm or false
-_G.BringEnabled=_G.BringEnabled or false
-_G.AutoAttack=_G.AutoAttack or true
-local DEBUG=true
-local function dbg(...) if DEBUG then print("[AF]",...) end end
-local function warn(...) if DEBUG then warn("[AF]",...) end end
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
-local function findRegisters()
-  local ra,rh
-  for _,v in pairs(ReplicatedStorage:GetDescendants()) do
-    if (v.Name=="RE/RegisterAttack" or v.Name=="RegisterAttack") and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then ra=ra or v end
-    if (v.Name=="RE/RegisterHit" or v.Name=="RegisterHit") and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then rh=rh or v end
-  end
-  return ra,rh
-end
-local RegisterAttack,RegisterHit=findRegisters()
-dbg("RegisterAttack:",tostring(RegisterAttack),"RegisterHit:",tostring(RegisterHit))
+local Fluent = {}
+Fluent.__index = Fluent
 
-local function loadQuestsModule()
-  local q=ReplicatedStorage:FindFirstChild("Quests")
-  if q and q:IsA("ModuleScript") then local ok,res=pcall(require,q) if ok then return res end end
-  for _,v in pairs(ReplicatedStorage:GetDescendants()) do if v:IsA("ModuleScript") and v.Name=="Quests" then local ok,res=pcall(require,v) if ok then return res end end end
-  return nil
-end
-local QuestsModule=loadQuestsModule()
-if QuestsModule then dbg("Quests module loaded") else warn("Quests module not found") end
-
-local function getLevel()
-  local lvl
-  pcall(function() if player:FindFirstChild("Data") and player.Data:FindFirstChild("Level") then lvl=player.Data.Level.Value end end)
-  if not lvl then pcall(function() if player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Level") then lvl=player.leaderstats.Level.Value end end) end
-  if not lvl then lvl=player:GetAttribute("Level") end
-  return lvl
+-- Utility Functions
+local function Tween(object, properties, duration, style)
+	local tweenInfo = TweenInfo.new(duration or 0.1, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(object, tweenInfo, properties)
+	tween:Play()
+	return tween
 end
 
-local function parseModuleForBest(lvl)
-  if not QuestsModule then return nil end
-  local bestKey,bestEntry
-  for key,arr in pairs(QuestsModule) do
-    for _,entry in ipairs(arr) do
-      if entry.LevelReq and entry.LevelReq<= (lvl or 0) then
-        if not bestEntry or entry.LevelReq>bestEntry.LevelReq then bestKey,bestEntry=key,entry end
-      end
-    end
-  end
-  if bestEntry and bestKey then for mob,c in pairs(bestEntry.Task or {}) do return bestKey,tostring(mob),tonumber(c) end end
-  return nil
+local function MakeDraggable(frame)
+	local dragging, dragInput, dragStart, startPos
+	
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			Tween(frame, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.1)
+		end
+	end)
 end
 
-local function findNearestMobByName(name,maxDist)
-  if not name then return nil,{} end
-  local myPos=player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new()
-  local cand={}
-  for _,m in pairs(Workspace:GetDescendants()) do
-    if m:IsA("Model") and m:FindFirstChildWhichIsA("Humanoid") and m:FindFirstChild("HumanoidRootPart") then
-      if m.Name:lower():find(name:lower()) then
-        local d=(m.HumanoidRootPart.Position-myPos).Magnitude
-        if (not maxDist) or d<=maxDist then table.insert(cand,{m=m,d=d}) end
-      end
-    end
-  end
-  if #cand==0 then return nil,{} end
-  table.sort(cand,function(a,b) return a.d<b.d end)
-  local list={}
-  for _,v in ipairs(cand) do table.insert(list,v.m) end
-  return list[1],list
+-- Create Window
+function Fluent:CreateWindow(config)
+	config = config or {}
+	local WindowName = config.Title or "Fluent UI"
+	local WindowVersion = config.Version or "v1.0.0"
+	
+	-- ScreenGui
+	local FluentUI = Instance.new("ScreenGui")
+	FluentUI.Name = "FluentUI"
+	FluentUI.Parent = CoreGui
+	FluentUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	
+	-- Main Frame
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Name = "MainFrame"
+	MainFrame.Parent = FluentUI
+	MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	MainFrame.Size = UDim2.new(0, 0, 0, 0)
+	MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	MainFrame.BorderSizePixel = 0
+	MainFrame.ClipsDescendants = true
+	
+	local MainCorner = Instance.new("UICorner")
+	MainCorner.CornerRadius = UDim.new(0, 12)
+	MainCorner.Parent = MainFrame
+	
+	local MainStroke = Instance.new("UIStroke")
+	MainStroke.Color = Color3.fromRGB(60, 60, 70)
+	MainStroke.Thickness = 1
+	MainStroke.Parent = MainFrame
+	
+	-- Shadow Effect
+	local Shadow = Instance.new("ImageLabel")
+	Shadow.Name = "Shadow"
+	Shadow.Parent = MainFrame
+	Shadow.BackgroundTransparency = 1
+	Shadow.Position = UDim2.new(0, -15, 0, -15)
+	Shadow.Size = UDim2.new(1, 30, 1, 30)
+	Shadow.ZIndex = 0
+	Shadow.Image = "rbxassetid://6014261993"
+	Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	Shadow.ImageTransparency = 0.5
+	Shadow.ScaleType = Enum.ScaleType.Slice
+	Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+	
+	-- Header
+	local Header = Instance.new("Frame")
+	Header.Name = "Header"
+	Header.Parent = MainFrame
+	Header.Size = UDim2.new(1, 0, 0, 50)
+	Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	Header.BorderSizePixel = 0
+	
+	local HeaderCorner = Instance.new("UICorner")
+	HeaderCorner.CornerRadius = UDim.new(0, 12)
+	HeaderCorner.Parent = Header
+	
+	local HeaderBottom = Instance.new("Frame")
+	HeaderBottom.Parent = Header
+	HeaderBottom.Position = UDim2.new(0, 0, 1, -12)
+	HeaderBottom.Size = UDim2.new(1, 0, 0, 12)
+	HeaderBottom.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	HeaderBottom.BorderSizePixel = 0
+	
+	-- Logo
+	local Logo = Instance.new("Frame")
+	Logo.Name = "Logo"
+	Logo.Parent = Header
+	Logo.Position = UDim2.new(0, 15, 0.5, -15)
+	Logo.Size = UDim2.new(0, 30, 0, 30)
+	Logo.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+	Logo.BorderSizePixel = 0
+	
+	local LogoCorner = Instance.new("UICorner")
+	LogoCorner.CornerRadius = UDim.new(0, 8)
+	LogoCorner.Parent = Logo
+	
+	local LogoGradient = Instance.new("UIGradient")
+	LogoGradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 80, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 120, 255))
+	}
+	LogoGradient.Rotation = 45
+	LogoGradient.Parent = Logo
+	
+	-- Title
+	local Title = Instance.new("TextLabel")
+	Title.Name = "Title"
+	Title.Parent = Header
+	Title.Position = UDim2.new(0, 55, 0, 8)
+	Title.Size = UDim2.new(0, 200, 0, 20)
+	Title.BackgroundTransparency = 1
+	Title.Text = WindowName
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.TextSize = 16
+	Title.Font = Enum.Font.GothamBold
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local Version = Instance.new("TextLabel")
+	Version.Name = "Version"
+	Version.Parent = Header
+	Version.Position = UDim2.new(0, 55, 0, 28)
+	Version.Size = UDim2.new(0, 200, 0, 14)
+	Version.BackgroundTransparency = 1
+	Version.Text = WindowVersion
+	Version.TextColor3 = Color3.fromRGB(150, 150, 160)
+	Version.TextSize = 11
+	Version.Font = Enum.Font.Gotham
+	Version.TextXAlignment = Enum.TextXAlignment.Left
+	
+	-- Close Button
+	local CloseButton = Instance.new("TextButton")
+	CloseButton.Name = "CloseButton"
+	CloseButton.Parent = Header
+	CloseButton.AnchorPoint = Vector2.new(1, 0.5)
+	CloseButton.Position = UDim2.new(1, -10, 0.5, 0)
+	CloseButton.Size = UDim2.new(0, 30, 0, 30)
+	CloseButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	CloseButton.BorderSizePixel = 0
+	CloseButton.Text = "✕"
+	CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	CloseButton.TextSize = 16
+	CloseButton.Font = Enum.Font.GothamBold
+	
+	local CloseCorner = Instance.new("UICorner")
+	CloseCorner.CornerRadius = UDim.new(0, 8)
+	CloseCorner.Parent = CloseButton
+	
+	CloseButton.MouseEnter:Connect(function()
+		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}, 0.2)
+	end)
+	
+	CloseButton.MouseLeave:Connect(function()
+		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(35, 35, 40)}, 0.2)
+	end)
+	
+	CloseButton.MouseButton1Click:Connect(function()
+		Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back)
+		wait(0.3)
+		FluentUI:Destroy()
+	end)
+	
+	-- Minimize Button
+	local MinimizeButton = Instance.new("TextButton")
+	MinimizeButton.Name = "MinimizeButton"
+	MinimizeButton.Parent = Header
+	MinimizeButton.AnchorPoint = Vector2.new(1, 0.5)
+	MinimizeButton.Position = UDim2.new(1, -45, 0.5, 0)
+	MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+	MinimizeButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	MinimizeButton.BorderSizePixel = 0
+	MinimizeButton.Text = "—"
+	MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	MinimizeButton.TextSize = 16
+	MinimizeButton.Font = Enum.Font.GothamBold
+	
+	local MinimizeCorner = Instance.new("UICorner")
+	MinimizeCorner.CornerRadius = UDim.new(0, 8)
+	MinimizeCorner.Parent = MinimizeButton
+	
+	MinimizeButton.MouseEnter:Connect(function()
+		Tween(MinimizeButton, {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}, 0.2)
+	end)
+	
+	MinimizeButton.MouseLeave:Connect(function()
+		Tween(MinimizeButton, {BackgroundColor3 = Color3.fromRGB(35, 35, 40)}, 0.2)
+	end)
+	
+	local minimized = false
+	MinimizeButton.MouseButton1Click:Connect(function()
+		minimized = not minimized
+		if minimized then
+			Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 50)}, 0.3)
+		else
+			Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 400)}, 0.3)
+		end
+	end)
+	
+	-- Tab Container
+	local TabContainer = Instance.new("Frame")
+	TabContainer.Name = "TabContainer"
+	TabContainer.Parent = MainFrame
+	TabContainer.Position = UDim2.new(0, 0, 0, 50)
+	TabContainer.Size = UDim2.new(0, 140, 1, -50)
+	TabContainer.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	TabContainer.BorderSizePixel = 0
+	
+	local TabList = Instance.new("UIListLayout")
+	TabList.Parent = TabContainer
+	TabList.SortOrder = Enum.SortOrder.LayoutOrder
+	TabList.Padding = UDim.new(0, 5)
+	
+	local TabPadding = Instance.new("UIPadding")
+	TabPadding.Parent = TabContainer
+	TabPadding.PaddingTop = UDim.new(0, 10)
+	TabPadding.PaddingLeft = UDim.new(0, 10)
+	TabPadding.PaddingRight = UDim.new(0, 10)
+	
+	-- Content Container
+	local ContentContainer = Instance.new("Frame")
+	ContentContainer.Name = "ContentContainer"
+	ContentContainer.Parent = MainFrame
+	ContentContainer.Position = UDim2.new(0, 140, 0, 50)
+	ContentContainer.Size = UDim2.new(1, -140, 1, -50)
+	ContentContainer.BackgroundTransparency = 1
+	ContentContainer.BorderSizePixel = 0
+	
+	-- Make draggable
+	MakeDraggable(Header)
+	
+	-- Animate opening
+	Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 400)}, 0.5, Enum.EasingStyle.Back)
+	
+	local Window = {}
+	Window.Tabs = {}
+	Window.CurrentTab = nil
+	
+	function Window:AddTab(config)
+		config = config or {}
+		local TabName = config.Name or "Tab"
+		local TabIcon = config.Icon or "📋"
+		
+		-- Tab Button
+		local TabButton = Instance.new("TextButton")
+		TabButton.Name = TabName
+		TabButton.Parent = TabContainer
+		TabButton.Size = UDim2.new(1, 0, 0, 35)
+		TabButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+		TabButton.BorderSizePixel = 0
+		TabButton.Text = "  " .. TabIcon .. "  " .. TabName
+		TabButton.TextColor3 = Color3.fromRGB(180, 180, 190)
+		TabButton.TextSize = 13
+		TabButton.Font = Enum.Font.GothamMedium
+		TabButton.TextXAlignment = Enum.TextXAlignment.Left
+		
+		local TabCorner = Instance.new("UICorner")
+		TabCorner.CornerRadius = UDim.new(0, 8)
+		TabCorner.Parent = TabButton
+		
+		local TabPadding = Instance.new("UIPadding")
+		TabPadding.Parent = TabButton
+		TabPadding.PaddingLeft = UDim.new(0, 10)
+		
+		-- Tab Content
+		local TabContent = Instance.new("ScrollingFrame")
+		TabContent.Name = TabName .. "Content"
+		TabContent.Parent = ContentContainer
+		TabContent.Size = UDim2.new(1, 0, 1, 0)
+		TabContent.BackgroundTransparency = 1
+		TabContent.BorderSizePixel = 0
+		TabContent.ScrollBarThickness = 4
+		TabContent.ScrollBarImageColor3 = Color3.fromRGB(120, 80, 255)
+		TabContent.Visible = false
+		
+		local ContentList = Instance.new("UIListLayout")
+		ContentList.Parent = TabContent
+		ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+		ContentList.Padding = UDim.new(0, 8)
+		
+		local ContentPadding = Instance.new("UIPadding")
+		ContentPadding.Parent = TabContent
+		ContentPadding.PaddingTop = UDim.new(0, 10)
+		ContentPadding.PaddingLeft = UDim.new(0, 15)
+		ContentPadding.PaddingRight = UDim.new(0, 15)
+		ContentPadding.PaddingBottom = UDim.new(0, 10)
+		
+		ContentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentList.AbsoluteContentSize.Y + 20)
+		end)
+		
+		TabButton.MouseEnter:Connect(function()
+			if Window.CurrentTab ~= TabContent then
+				Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.2)
+			end
+		end)
+		
+		TabButton.MouseLeave:Connect(function()
+			if Window.CurrentTab ~= TabContent then
+				Tween(TabButton, {BackgroundColor3 = Color3.fromRGB(25, 25, 30)}, 0.2)
+			end
+		end)
+		
+		TabButton.MouseButton1Click:Connect(function()
+			for _, tab in pairs(Window.Tabs) do
+				tab.Button.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+				tab.Button.TextColor3 = Color3.fromRGB(180, 180, 190)
+				tab.Content.Visible = false
+			end
+			
+			TabButton.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+			TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			TabContent.Visible = true
+			Window.CurrentTab = TabContent
+		end)
+		
+		local Tab = {}
+		Tab.Button = TabButton
+		Tab.Content = TabContent
+		
+		function Tab:AddButton(config)
+			config = config or {}
+			local ButtonName = config.Name or "Button"
+			local Callback = config.Callback or function() end
+			
+			local Button = Instance.new("TextButton")
+			Button.Name = ButtonName
+			Button.Parent = TabContent
+			Button.Size = UDim2.new(1, 0, 0, 35)
+			Button.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+			Button.BorderSizePixel = 0
+			Button.Text = ButtonName
+			Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Button.TextSize = 13
+			Button.Font = Enum.Font.GothamMedium
+			
+			local ButtonCorner = Instance.new("UICorner")
+			ButtonCorner.CornerRadius = UDim.new(0, 8)
+			ButtonCorner.Parent = Button
+			
+			Button.MouseEnter:Connect(function()
+				Tween(Button, {BackgroundColor3 = Color3.fromRGB(120, 80, 255)}, 0.2)
+			end)
+			
+			Button.MouseLeave:Connect(function()
+				Tween(Button, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.2)
+			end)
+			
+			Button.MouseButton1Click:Connect(function()
+				Button.TextSize = 11
+				wait(0.1)
+				Button.TextSize = 13
+				Callback()
+			end)
+			
+			return Button
+		end
+		
+		function Tab:AddToggle(config)
+			config = config or {}
+			local ToggleName = config.Name or "Toggle"
+			local Default = config.Default or false
+			local Callback = config.Callback or function() end
+			
+			local ToggleFrame = Instance.new("Frame")
+			ToggleFrame.Name = ToggleName
+			ToggleFrame.Parent = TabContent
+			ToggleFrame.Size = UDim2.new(1, 0, 0, 35)
+			ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+			ToggleFrame.BorderSizePixel = 0
+			
+			local ToggleCorner = Instance.new("UICorner")
+			ToggleCorner.CornerRadius = UDim.new(0, 8)
+			ToggleCorner.Parent = ToggleFrame
+			
+			local ToggleLabel = Instance.new("TextLabel")
+			ToggleLabel.Parent = ToggleFrame
+			ToggleLabel.Position = UDim2.new(0, 10, 0, 0)
+			ToggleLabel.Size = UDim2.new(1, -60, 1, 0)
+			ToggleLabel.BackgroundTransparency = 1
+			ToggleLabel.Text = ToggleName
+			ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			ToggleLabel.TextSize = 13
+			ToggleLabel.Font = Enum.Font.GothamMedium
+			ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+			
+			local ToggleButton = Instance.new("TextButton")
+			ToggleButton.Parent = ToggleFrame
+			ToggleButton.AnchorPoint = Vector2.new(1, 0.5)
+			ToggleButton.Position = UDim2.new(1, -10, 0.5, 0)
+			ToggleButton.Size = UDim2.new(0, 40, 0, 20)
+			ToggleButton.BackgroundColor3 = Default and Color3.fromRGB(120, 80, 255) or Color3.fromRGB(50, 50, 60)
+			ToggleButton.BorderSizePixel = 0
+			ToggleButton.Text = ""
+			
+			local ToggleButtonCorner = Instance.new("UICorner")
+			ToggleButtonCorner.CornerRadius = UDim.new(1, 0)
+			ToggleButtonCorner.Parent = ToggleButton
+			
+			local ToggleCircle = Instance.new("Frame")
+			ToggleCircle.Parent = ToggleButton
+			ToggleCircle.Position = Default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+			ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
+			ToggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			ToggleCircle.BorderSizePixel = 0
+			
+			local CircleCorner = Instance.new("UICorner")
+			CircleCorner.CornerRadius = UDim.new(1, 0)
+			CircleCorner.Parent = ToggleCircle
+			
+			local toggled = Default
+			
+			ToggleButton.MouseButton1Click:Connect(function()
+				toggled = not toggled
+				
+				if toggled then
+					Tween(ToggleButton, {BackgroundColor3 = Color3.fromRGB(120, 80, 255)}, 0.2)
+					Tween(ToggleCircle, {Position = UDim2.new(1, -18, 0.5, -8)}, 0.2)
+				else
+					Tween(ToggleButton, {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}, 0.2)
+					Tween(ToggleCircle, {Position = UDim2.new(0, 2, 0.5, -8)}, 0.2)
+				end
+				
+				Callback(toggled)
+			end)
+			
+			return ToggleFrame
+		end
+		
+		function Tab:AddSlider(config)
+			config = config or {}
+			local SliderName = config.Name or "Slider"
+			local Min = config.Min or 0
+			local Max = config.Max or 100
+			local Default = config.Default or 50
+			local Callback = config.Callback or function() end
+			
+			local SliderFrame = Instance.new("Frame")
+			SliderFrame.Name = SliderName
+			SliderFrame.Parent = TabContent
+			SliderFrame.Size = UDim2.new(1, 0, 0, 50)
+			SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+			SliderFrame.BorderSizePixel = 0
+			
+			local SliderCorner = Instance.new("UICorner")
+			SliderCorner.CornerRadius = UDim.new(0, 8)
+			SliderCorner.Parent = SliderFrame
+			
+			local SliderLabel = Instance.new("TextLabel")
+			SliderLabel.Parent = SliderFrame
+			SliderLabel.Position = UDim2.new(0, 10, 0, 5)
+			SliderLabel.Size = UDim2.new(1, -20, 0, 15)
+			SliderLabel.BackgroundTransparency = 1
+			SliderLabel.Text = SliderName
+			SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			SliderLabel.TextSize = 13
+			SliderLabel.Font = Enum.Font.GothamMedium
+			SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+			
+			local SliderValue = Instance.new("TextLabel")
+			SliderValue.Parent = SliderFrame
+			SliderValue.Position = UDim2.new(1, -50, 0, 5)
+			SliderValue.Size = UDim2.new(0, 40, 0, 15)
+			SliderValue.BackgroundTransparency = 1
+			SliderValue.Text = tostring(Default)
+			SliderValue.TextColor3 = Color3.fromRGB(120, 80, 255)
+			SliderValue.TextSize = 13
+			SliderValue.Font = Enum.Font.GothamBold
+			SliderValue.TextXAlignment = Enum.TextXAlignment.Right
+			
+			local SliderBar = Instance.new("Frame")
+			SliderBar.Parent = SliderFrame
+			SliderBar.Position = UDim2.new(0, 10, 0, 30)
+			SliderBar.Size = UDim2.new(1, -20, 0, 6)
+			SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+			SliderBar.BorderSizePixel = 0
+			
+			local SliderBarCorner = Instance.new("UICorner")
+			SliderBarCorner.CornerRadius = UDim.new(1, 0)
+			SliderBarCorner.Parent = SliderBar
+			
+			local SliderFill = Instance.new("Frame")
+			SliderFill.Parent = SliderBar
+			SliderFill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+			SliderFill.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+			SliderFill.BorderSizePixel = 0
+			
+			local SliderFillCorner = Instance.new("UICorner")
+			SliderFillCorner.CornerRadius = UDim.new(1, 0)
+			SliderFillCorner.Parent = SliderFill
+			
+			local SliderButton = Instance.new("TextButton")
+			SliderButton.Parent = SliderBar
+			SliderButton.Size = UDim2.new(1, 0, 1, 0)
+			SliderButton.BackgroundTransparency = 1
+			SliderButton.Text = ""
+			
+			local dragging = false
+			
+			SliderButton.MouseButton1Down:Connect(function()
+				dragging = true
+			end)
+			
+			UserInputService.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = false
+				end
+			end)
+			
+			SliderButton.MouseMoved:Connect(function(x, y)
+				if dragging then
+					local percentage = math.clamp((x - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+					local value = math.floor(Min + (Max - Min) * percentage)
+					
+					SliderValue.Text = tostring(value)
+					Tween(SliderFill, {Size = UDim2.new(percentage, 0, 1, 0)}, 0.1)
+					Callback(value)
+				end
+			end)
+			
+			return SliderFrame
+		end
+		
+		function Tab:AddLabel(text)
+			local Label = Instance.new("TextLabel")
+			Label.Parent = TabContent
+			Label.Size = UDim2.new(1, 0, 0, 25)
+			Label.BackgroundTransparency = 1
+			Label.Text = text or "Label"
+			Label.TextColor3 = Color3.fromRGB(200, 200, 210)
+			Label.TextSize = 13
+			Label.Font = Enum.Font.Gotham
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			
+			return Label
+		end
+		
+		table.insert(Window.Tabs, Tab)
+		
+		if #Window.Tabs == 1 then
+			TabButton.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+			TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			TabContent.Visible = true
+			Window.CurrentTab = TabContent
+		end
+		
+		return Tab
+	end
+	
+	return Window
 end
 
-local TP_THRESHOLD=250
-local TP_TWEEN_SPEED=350
-local function smartMoveTo(pos)
-  if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
-  local hrp=player.Character.HumanoidRootPart
-  local start=hrp.Position
-  local dist=(pos-start).Magnitude
-  if dist<=TP_THRESHOLD then pcall(function() hrp.CFrame=CFrame.new(pos+Vector3.new(0,3,0)) end) return end
-  local dir=(pos-start).Unit
-  local near=pos-dir*(TP_THRESHOLD-10)
-  local dur=math.max(0.15,dist/TP_TWEEN_SPEED)
-  local ok,tween=pcall(function() return TweenService:Create(hrp,TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(near+Vector3.new(0,3,0))}) end)
-  if ok and tween then pcall(function() tween:Play() end) task.wait(dur+0.05) end
-  pcall(function() hrp.CFrame=CFrame.new(pos+Vector3.new(0,3,0)) end)
-end
-
-local function tryCombatEquipEvent()
-  local obj=(player.Character and player.Character:FindFirstChild("Combat")) or (player:FindFirstChild("Backpack") and player.Backpack:FindFirstChild("Combat"))
-  if obj and obj:FindFirstChild("EquipEvent") then pcall(function() obj.EquipEvent:FireServer(true) end) dbg("Fired Combat:EquipEvent(true)") return true end
-  return false
-end
-
-local function fireToolOrRegister(tool,targetPart)
-  if tool then
-    for _,v in pairs(tool:GetDescendants()) do
-      local n=v.Name:lower()
-      if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) and n:find("fire") then
-        pcall(function() if v:IsA("RemoteFunction") then v:InvokeServer(targetPart) else v:FireServer(targetPart) end end)
-        return
-      end
-    end
-  end
-  if RegisterAttack and _G.AutoAttack then pcall(function() RegisterAttack:FireServer() end) end
-  if RegisterHit and targetPart and _G.AutoAttack then pcall(function() RegisterHit:FireServer(targetPart) end) end
-end
-
-local function ensureEquip()
-  tryCombatEquipEvent()
-  task.wait(0.12)
-  local tool=player.Character and player.Character:FindFirstChildOfClass("Tool")
-  if tool then return tool end
-  if player:FindFirstChild("Backpack") then
-    local tb=player.Backpack:FindFirstChildOfClass("Tool")
-    if tb then
-      local humanoid=player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
-      if humanoid then for i=1,4 do pcall(function() humanoid:EquipTool(tb) end) task.wait(0.08) if tb.Parent==player.Character then return tb end end end
-    end
-  end
-  return nil
-end
-
-local BRING_LIMIT=2
-local BRING_DISTANCE=340
-local function bringGroup(mobName)
-  if not _G.BringEnabled then return end
-  if not Workspace:FindFirstChild("Enemies") then return end
-  local myHRP=player.Character and player.Character:FindFirstChild("HumanoidRootPart") if not myHRP then return end
-  local got=0
-  for _,m in pairs(Workspace.Enemies:GetChildren()) do
-    if got>=BRING_LIMIT then break end
-    if m and m:FindFirstChildWhichIsA("Humanoid") and m:FindFirstChild("HumanoidRootPart") and m.Name:lower():find((mobName or ""):lower()) then
-      local hum=m:FindFirstChildWhichIsA("Humanoid"); local hrp=m:FindFirstChild("HumanoidRootPart")
-      if hum and hrp and hum.Health>0 and (hrp.Position-myHRP.Position).Magnitude<=BRING_DISTANCE then
-        pcall(function()
-          if not m:GetAttribute("Bring_isBrought") then m:SetAttribute("Bring_prevWalkSpeed",hum.WalkSpeed or 0); m:SetAttribute("Bring_prevJumpPower",hum.JumpPower or 0); m:SetAttribute("Bring_isBrought",true) end
-          hum.WalkSpeed=0; hum.JumpPower=0; hum.PlatformStand=true; hrp.CanCollide=false; if m:FindFirstChild("Head") then m.Head.CanCollide=false end
-          hrp.CFrame=myHRP.CFrame*CFrame.new(0,-20,0)
-        end)
-        got=got+1
-      end
-    end
-  end
-end
-
-local function buildUI()
-  local sg=Instance.new("ScreenGui",playerGui); sg.Name="AutoFarm_MinUI"; sg.ResetOnSpawn=false
-  local f=Instance.new("Frame",sg); f.Size=UDim2.new(0,320,0,180); f.Position=UDim2.new(0.01,0,0.04,0); f.BackgroundColor3=Color3.fromRGB(20,20,20); f.BackgroundTransparency=0.08
-  local layout=Instance.new("UIListLayout",f); layout.Padding=UDim.new(0,8); layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
-  local function L(t) local l=Instance.new("TextLabel",f); l.Size=UDim2.new(0.95,0,0,24); l.Text=t; l.TextScaled=true; l.BackgroundTransparency=1; l.TextColor3=Color3.new(1,1,1); return l end
-  local function B(t) local b=Instance.new("TextButton",f); b.Size=UDim2.new(0.95,0,0,34); b.Text=t; b.TextScaled=true; b.BackgroundColor3=Color3.fromRGB(60,60,60); b.TextColor3=Color3.fromRGB(1,1,1); return b end
-  local lblLevel=L("Level: ?"); local lblQuest=L("Quest: -"); local lblProg=L("Progress: 0/0")
-  local btnAuto=B("AutoFarm: OFF"); local btnBring=B("Bring: OFF"); local btnAttack=B("AutoAttack: ON")
-  btnAuto.MouseButton1Click:Connect(function() _G.AutoFarm=not _G.AutoFarm; btnAuto.Text=_G.AutoFarm and "AutoFarm: ON" or "AutoFarm: OFF"; btnAuto.BackgroundColor3=_G.AutoFarm and Color3.fromRGB(60,120,60) or Color3.fromRGB(60,60,60) end)
-  btnBring.MouseButton1Click:Connect(function() _G.BringEnabled=not _G.BringEnabled; btnBring.Text=_G.BringEnabled and "Bring: ON" or "Bring: OFF"; btnBring.BackgroundColor3=_G.BringEnabled and Color3.fromRGB(60,120,60) or Color3.fromRGB(60,60,60) end)
-  btnAttack.MouseButton1Click:Connect(function() _G.AutoAttack=not _G.AutoAttack; btnAttack.Text=_G.AutoAttack and "AutoAttack: ON" or "AutoAttack: OFF"; btnAttack.BackgroundColor3=_G.AutoAttack and Color3.fromRGB(60,120,60) or Color3.fromRGB(60,60,60) end)
-  return {sg=sg, lblLevel=lblLevel, lblQuest=lblQuest, lblProg=lblProg}
-end
-
-local UI=buildUI()
-
-local function makeStatus()
-  local sg=Instance.new("ScreenGui",playerGui); sg.Name="AF_Status"; sg.ResetOnSpawn=false
-  local f=Instance.new("Frame",sg); f.Size=UDim2.new(0,240,0,90); f.Position=UDim2.new(0.015,0,0.28,0); f.BackgroundColor3=Color3.fromRGB(18,18,18); f.BackgroundTransparency=0.08
-  local layout=Instance.new("UIListLayout",f); layout.Padding=UDim.new(0,6)
-  local k=Instance.new("TextLabel",f); k.Size=UDim2.new(0.95,0,0,20); k.TextScaled=true; k.Text="Quest: -"; k.BackgroundTransparency=1; k.TextColor3=Color3.new(1,1,1)
-  local m=Instance.new("TextLabel",f); m.Size=UDim2.new(0.95,0,0,20); m.TextScaled=true; m.Text="Mob: -"; m.BackgroundTransparency=1; m.TextColor3=Color3.new(1,1,1)
-  local p=Instance.new("TextLabel",f); p.Size=UDim2.new(0.95,0,0,20); p.TextScaled=true; p.Text="Prog: 0/0"; p.BackgroundTransparency=1; p.TextColor3=Color3.new(1,1,1)
-  return {gui=sg,k=k,m=m,p=p}
-end
-local Status=makeStatus()
-
-local active={key=nil,mob=nil,need=0,progress=0,started=false}
-local deathConns={}
-local function clearDeathConns() for _,c in pairs(deathConns) do pcall(function() c:Disconnect() end) end deathConns={} end
-local function watchDeaths(mobName)
-  clearDeathConns(); active.progress=0
-  local en=Workspace:FindFirstChild("Enemies") if not en then return end
-  for _,m in pairs(en:GetChildren()) do
-    if m and m:FindFirstChildWhichIsA("Humanoid") and m.Name:lower():find(mobName:lower()) then local h=m:FindFirstChildWhichIsA("Humanoid") if h then table.insert(deathConns,h.Died:Connect(function() active.progress=active.progress+1 end)) end end
-  end
-  if en then table.insert(deathConns,en.ChildAdded:Connect(function(ch) if ch and ch:FindFirstChildWhichIsA("Humanoid") and ch.Name:lower():find(mobName:lower()) then local h=ch:FindFirstChildWhichIsA("Humanoid") if h then table.insert(deathConns,h.Died:Connect(function() active.progress=active.progress+1 end)) end end end)) end
-end
-
-local function refreshProgressFromServer(qKey)
-  if not qKey then return end
-  local data=player:FindFirstChild("Data") if not data then return end
-  pcall(function() if data:FindFirstChild("Quests") and data.Quests:FindFirstChild(qKey) then local qf=data.Quests[qKey]; if qf:FindFirstChild("Progress") then active.progress=qf.Progress.Value end; if qf:FindFirstChild("Required") then active.need=qf.Required.Value end end end)
-end
-
-local QuestsLookup={BanditQuest1={questPos=Vector3.new(1059,17,1546)},DesertQuest={questPos=Vector3.new(897,6,4389)}}
-local function safeStartQuest(qKey)
-  if not qKey then return end
-  local pos=(QuestsLookup[qKey] and QuestsLookup[qKey].questPos) and QuestsLookup[qKey].questPos or nil
-  local origin=player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.CFrame or nil
-  if pos then smartMoveTo(pos) task.wait(0.08) end
-  pcall(function() for _,v in pairs(ReplicatedStorage:GetDescendants()) do if v.Name=="CommF_" or v.Name=="CommF" then if v:IsA("RemoteFunction") and v.InvokeServer then v:InvokeServer("StartQuest",qKey,1) end; if v:IsA("RemoteEvent") and v.FireServer then v:FireServer("StartQuest",qKey,1) end; break end end end)
-  task.wait(0.08) if origin then smartMoveTo(origin.Position) end
-end
-
-task.spawn(function()
-  dbg("AutoFarm loaded")
-  while task.wait(0.5) do
-    UI.lblLevel.Text="Level: "..tostring(getLevel() or "?")
-    if not _G.AutoFarm or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then continue end
-    local lvl=getLevel() if not lvl then task.wait(0.6) continue end
-    local key,mobName,need=parseModuleForBest(lvl)
-    if not key then task.wait(0.8) continue end
-    if active.key~=key then active.key=key; active.mob=mobName; active.need=need or 0; active.progress=0; active.started=false; Status.k.Text="Quest: "..tostring(active.key); Status.m.Text="Mob: "..tostring(active.mob); Status.p.Text="Prog: 0/"..tostring(active.need) end
-    if active.key and not active.started then safeStartQuest(active.key) task.wait(0.12) watchDeaths(active.mob) refreshProgressFromServer(active.key) active.started=true end
-    refreshProgressFromServer(active.key)
-    if active.need>0 and active.progress>=active.need then dbg("Quest complete -> clearing"); active={key=nil,mob=nil,need=0,progress=0,started=false}; clearDeathConns(); Status.k.Text="Quest: -"; Status.m.Text="Mob: -"; Status.p.Text="Prog: 0/0"; task.wait(0.6); continue end
-    local CLOSE=220; local FAR=1200
-    local mob,list=findNearestMobByName(active.mob,CLOSE)
-    if not mob then local far,fl=findNearestMobByName(active.mob,FAR) if far then dbg("Far mob found -> move"); smartMoveTo(far.HumanoidRootPart.Position); task.wait(0.4); mob,list=findNearestMobByName(active.mob,CLOSE) else dbg("No mobs"),task.wait(1); continue end end
-    if _G.BringEnabled and active.mob then bringGroup(active.mob) task.wait(0.08) end
-    mob=findNearestMobByName(active.mob,1000)
-    if not mob or not mob.HumanoidRootPart then task.wait(0.3) continue end
-    local h=mob:FindFirstChildWhichIsA("Humanoid"); local hrp=mob:FindFirstChild("HumanoidRootPart")
-    if not h or not hrp or h.Health<=0 then task.wait(0.2) continue end
-    local tool=ensureEquip()
-    local stop=false
-    local co=coroutine.create(function() while not stop and h and h.Health>0 and _G.AutoFarm do if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then local my=player.Character.HumanoidRootPart; pcall(function() my.AssemblyLinearVelocity=Vector3.new(0,0,0); my.Velocity=Vector3.new(0,0,0); my.CFrame=CFrame.new(hrp.Position+Vector3.new(0,20,0)); local ph=player.Character:FindFirstChildWhichIsA("Humanoid"); if ph then ph.PlatformStand=true end end) end task.wait(0.06) end pcall(function() if player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then player.Character:FindFirstChildWhichIsA("Humanoid").PlatformStand=false end end) end)
-    coroutine.resume(co)
-    while h and h.Health>0 and _G.AutoFarm do fireToolOrRegister(tool,hrp) task.wait(0.12) end
-    stop=true
-    task.wait(0.15)
-    refreshProgressFromServer(active.key)
-    Status.p.Text=string.format("Prog: %d / %d",active.progress or 0,active.need or 0)
-  end
-end)
-print("[AF] loaded")
+return Fluent
