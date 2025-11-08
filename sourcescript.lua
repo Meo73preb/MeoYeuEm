@@ -3,35 +3,46 @@ local v0 = require(game:GetService("ReplicatedStorage").Notification);
 v0.new("<Color=Cyan>Welcome viCat Hub<Color=/>"):Display();
 wait(0.5);
 v0.new("<Color=Yellow>Everyone Goes to Discord to Communicate<Color=/>"):Display();
-wait(1);
+wait(1)
 repeat
-	wait();
+	task.wait()
 until game.Players.LocalPlayer
-if  not game:IsLoaded() then
-	game.Loaded:Wait();
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
 end
-local v1 = task;
-if game:GetService("Players").LocalPlayer.PlayerGui.Main:FindFirstChild("ChooseTeam") then
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
+local MainGui = PlayerGui:WaitForChild("Main (minimal)")
+local ChooseTeam = MainGui:WaitForChild("ChooseTeam")
+
+if ChooseTeam then
 	repeat
-		task.wait();
-		if (game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("Main").ChooseTeam.Visible == true) then
-			if (getgenv().Team == "Marines") then
-				for v1932, v1933 in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container['Marines'].Frame.TextButton.Activated)) do
-					for v2129, v2130 in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
-						v2130:Fire();
-					end
-					v1933.Function();
+		task.wait()
+		
+		if ChooseTeam.Visible then
+			local teamName = (getgenv().Team == "Marines") and "Marines" or "Pirates"
+			local teamButton = ChooseTeam.Container:FindFirstChild(teamName)
+			
+			if teamButton then
+				local textButton = teamButton.Frame.TextButton
+				
+				-- Fire TouchTapInWorld connections
+				for _, connection in pairs(getconnections(UserInputService.TouchTapInWorld)) do
+					connection:Fire()
 				end
-			else
-				for v1934, v1935 in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container['Pirates'].Frame.TextButton.Activated)) do
-					for v2131, v2132 in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
-						v2132:Fire();
-					end
-					v1935.Function();
+				
+				-- Fire button activated connections
+				for _, connection in pairs(getconnections(textButton.Activated)) do
+					connection.Function()
 				end
 			end
 		end
-	until (game.Players.LocalPlayer.Team ~= nil) and game:IsLoaded()
+		
+	until LocalPlayer.Team ~= nil
 end
 if  not LPH_OBFUSCATED then
 	function LPH_JIT_MAX(...)
@@ -2911,7 +2922,7 @@ function module:attack()
 end
 
 spawn(function()
-  while wait(0,000001) do -- Tăng tốc độ tấn công bằng cách giảm thời gian chờ
+  while wait(0,01) do -- Tăng tốc độ tấn công bằng cách giảm thời gian chờ
     module:attack()
   end
 		end)
@@ -3016,19 +3027,19 @@ v1.spawn(function()
 	end
 end);
 local v66 = v5:Window(Enum.KeyCode.RightControl);
-local v67 = v66:T("Tab Status", "rbxassetid://10734984606");
-local v68 = v66:T("Tab General", "rbxassetid://10723407389");
-local v69 = v66:T("Tab Setting Other", "rbxassetid://10734950309");
-local v70 = v66:T("Tab Item", "rbxassetid://10734975692");
-local v71 = v66:T("Tab Race & Mirage", "rbxassetid://10747372167");
-local v72 = v66:T("Tab Sea Event", "rbxassetid://10709761530");
-local v73 = v66:T("Tab Local Player", "rbxassetid://10747373176");
-local v74 = v66:T("Tab Visual", "rbxassetid://10723346959");
-local v75 = v66:T("Tab Raid", "rbxassetid://10723345749");
-local v76 = v66:T("Tab Teleport", "rbxassetid://10723434557");
-local v77 = v66:T("Tab Shop", "rbxassetid://10734952479");
-local v78 = v66:T("Tab Devil Fruit", "rbxassetid://10709761889");
-local v79 = v66:T("Tab Miscellaneous", "rbxassetid://10709782582");
+local v67 = v66:T(" Status", "rbxassetid://10734984606");
+local v68 = v66:T(" General", "rbxassetid://10723407389");
+local v69 = v66:T(" Setting Other", "rbxassetid://10734950309");
+local v70 = v66:T(" Item", "rbxassetid://10734975692");
+local v71 = v66:T(" Race & Mirage", "rbxassetid://10747372167");
+local v72 = v66:T(" Sea Event", "rbxassetid://10709761530");
+local v73 = v66:T(" Local Player", "rbxassetid://10747373176");
+local v74 = v66:T(" Visual", "rbxassetid://10723346959");
+local v75 = v66:T(" Raid", "rbxassetid://10723345749");
+local v76 = v66:T(" Teleport", "rbxassetid://10723434557");
+local v77 = v66:T(" Shop", "rbxassetid://10734952479");
+local v78 = v66:T(" Devil Fruit", "rbxassetid://10709761889");
+local v79 = v66:T(" Miscellaneous", "rbxassetid://10709782582");
 v67:Seperator("Join Discord");
 v67:Label("Everyone Goes Into Socialize");
 v67:Button("Copy Discord Link", function()
@@ -10299,313 +10310,6 @@ v74:Toggle("Remove Fog", RemoveFog, function(v514)
 		end
 	end
 end);
-v74:Toggle("Remove Damage", true, function()
-	for v869, v870 in pairs(game.Workspace:GetDescendants()) do
-		if (v870.Name == "DamageCounter") then
-			v870:Destroy();
-		end
-	end
-	for v871, v872 in pairs(game.ReplicatedStorage:GetDescendants()) do
-		if (v872.Name == "DamageCounter") then
-			v872:Destroy();
-		end
-	end
-end);
-v74:Button("Unlock FPS", function()
-	setfpscap(9999999);
-end);
-v74:Seperator("Abilities");
-v74:Toggle("Dodge No Cooldown", false, function(v515)
-	nododgecool = v515;
-	NoDodgeCool();
-end);
-v74:Toggle("Infinite Energy", false, function(v516)
-	InfiniteEnergy = v516;
-	v28 = v27.Character.Energy.Value;
-end);
-v74:Toggle("Infinite Ability", false, function(v518)
-	InfAbility = v518;
-	if (value == false) then
-		game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("Agility"):Destroy();
-	end
-end);
-spawn(function()
-	while wait() do
-		if InfAbility then
-			InfAb();
-		end
-	end
-end);
-v74:Toggle("Infinite Obversation Range", getgenv().InfiniteObRange, function(v519)
-	getgenv().InfiniteObRange = v519;
-	local v521 = game:GetService("Players").LocalPlayer.VisionRadius.Value;
-	while getgenv().InfiniteObRange do
-		wait();
-		local v873 = game:GetService("Players").LocalPlayer;
-		local v874 = v873.Character;
-		local v875 = v873.VisionRadius;
-		if v873 then
-			if (v874.Humanoid.Health <= 0) then
-				wait(5);
-			end
-			v875.Value = math.huge;
-		elseif ((getgenv().InfiniteObRange == false) and v873) then
-			v875.Value = v521;
-		end
-	end
-end);
-v74:Toggle("Infinite Geppo", getgenv().InfGeppo, function(v522)
-	getgenv().InfGeppo = v522;
-end);
-spawn(function()
-	while wait() do
-		pcall(function()
-			if getgenv().InfGeppo then
-				for v1847, v1848 in next, getgc() do
-					if game:GetService("Players").LocalPlayer.Character.Geppo then
-						if ((typeof(v1848) == "function") and (getfenv(v1848).script == game:GetService("Players").LocalPlayer.Character.Geppo)) then
-							for v2587, v2588 in next, getupvalues(v1848) do
-								if (tostring(v2587) == "9") then
-									repeat
-										wait(0.1);
-										setupvalue(v1848, v2587, 0);
-									until  not getgenv().InfGeppo or (game:GetService("Players").LocalPlayer.Character.Humanoid.Health <= 0)
-								end
-							end
-						end
-					end
-				end
-			end
-		end);
-	end
-end);
-v74:Toggle("Infinite Soru", _G.Infsoru, function(v524)
-	_G.Infsoru = v524;
-end);
-spawn(function()
-	while wait() do
-		pcall(function()
-			if (_G.Infsoru and (game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil)) then
-				for v1849, v1850 in next, getgc() do
-					if game:GetService("Players").LocalPlayer.Character.Soru then
-						if ((typeof(v1850) == "function") and (getfenv(v1850).script == game:GetService("Players").LocalPlayer.Character.Soru)) then
-							for v2589, v2590 in next, getupvalues(v1850) do
-								if (typeof(v2590) == "table") then
-									repeat
-										wait(0.1);
-										v2590.LastUse = 0;
-									until  not _G.Infsoru or (game:GetService("Players").LocalPlayer.Character.Humanoid.Health <= 0)
-								end
-							end
-						end
-					end
-				end
-			end
-		end);
-	end
-end);
-v74:Button("Remove Lava", function()
-	for v876, v877 in pairs(game.Workspace:GetDescendants()) do
-		if (v877.Name == "Lava") then
-			v877:Destroy();
-		end
-	end
-	for v878, v879 in pairs(game.ReplicatedStorage:GetDescendants()) do
-		if (v879.Name == "Lava") then
-			v879:Destroy();
-		end
-	end
-end);
-local v105 = v73:Label("Players");
-spawn(function()
-	while wait() do
-		pcall(function()
-			for v1670, v1671 in pairs(game:GetService("Players"):GetPlayers()) do
-				if (v1670 == 12) then
-					v105:Set("Players:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12"   .. " "   .. "(Max)" );
-				elseif (v1670 == 1) then
-					v105:Set("Player:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12" );
-				else
-					v105:Set("Players:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12" );
-				end
-			end
-		end);
-	end
-end);
-Playerslist = {};
-for v525, v526 in pairs(game:GetService("Players"):GetChildren()) do
-	table.insert(Playerslist, v526.Name);
-end
-local v106 = v73:Dropdown("Select Player", Playerslist, function(v527)
-	_G.SelectPly = v527;
-end);
-v73:Button("Refresh Player", function()
-	Playerslist = {};
-	v106:Clear();
-	for v880, v881 in pairs(game:GetService("Players"):GetChildren()) do
-		v106:Add(v881.Name);
-	end
-end);
-v73:Toggle("Spectate Player", false, function(v528)
-	SpectatePlys = v528;
-	local v529 = game:GetService("Players").LocalPlayer.Character.Humanoid;
-	local v530 = game:GetService("Players"):FindFirstChild(_G.SelectPly);
-	repeat
-		wait(0.1);
-		game:GetService("Workspace").Camera.CameraSubject = game:GetService("Players"):FindFirstChild(_G.SelectPly).Character.Humanoid;
-	until SpectatePlys == false
-	game:GetService("Workspace").Camera.CameraSubject = game:GetService("Players").LocalPlayer.Character.Humanoid;
-end);
-v73:Toggle("Teleport", false, function(v533)
-	_G.TeleportPly = v533;
-	pcall(function()
-		if _G.TeleportPly then
-			repeat
-				topos(game:GetService("Players")[_G.SelectPly].Character.HumanoidRootPart.CFrame);
-				wait();
-			until _G.TeleportPly == false
-		end
-		StopTween(_G.TeleportPly);
-	end);
-end);
-v73:Seperator("Quest Player");
-v73:Button("Get Quest Elite Players", function()
-	game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("PlayerHunter");
-end);
-v73:Toggle("Auto Kill Player Quest", _G.PlayerHunter, function(v534)
-	_G.PlayerHunter = v534;
-	StopTween(_G.PlayerHunter);
-end);
-spawn(function()
-	game:GetService("RunService").Heartbeat:connect(function()
-		pcall(function()
-			if _G.PlayerHunter then
-				if game:GetService("Players").LocalPlayer.Character:FindFirstChild("Humanoid") then
-					game:GetService("Players").LocalPlayer.Character.Humanoid:ChangeState(11);
-				end
-			end
-		end);
-	end);
-end);
-spawn(function()
-	pcall(function()
-		while wait(0.1) do
-			if _G.PlayerHunter then
-				if (game:GetService("Players").LocalPlayer.PlayerGui.Main.PvpDisabled.Visible == true) then
-					game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EnablePvp");
-				end
-			end
-		end
-	end);
-end);
-spawn(function()
-	while wait() do
-		if _G.PlayerHunter then
-			if (game:GetService("Players").LocalPlayer.PlayerGui.Main.Quest.Visible == false) then
-				wait(0.5);
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("PlayerHunter");
-			else
-				for v1918, v1919 in pairs(game:GetService("Workspace").Characters:GetChildren()) do
-					if string.find(game:GetService("Players").LocalPlayer.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text, v1919.Name) then
-						repeat
-							wait();
-							if  not game.Players.LocalPlayer.Character:FindFirstChild("HasBuso") then
-								local v2633 = {
-									[1] = "Buso"
-								};
-								game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(v2633));
-							end
-							EquipWeapon(_G.SelectWeapon);
-							Useskill = true;
-							topos(v1919.HumanoidRootPart.CFrame * CFrame.new(1, 7, 3) );
-							v1919.HumanoidRootPart.Size = Vector3.new(60, 60, 60);
-							game:GetService("VirtualUser"):CaptureController();
-							game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672));
-						until (_G.PlayerHunter == false) or (v1919.Humanoid.Health <= 0)
-						Useskill = false;
-						game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest");
-					end
-				end
-			end
-		end
-	end
-end);
-spawn(function()
-	while wait() do
-		pcall(function()
-			if Useskill then
-				game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(false, "Z", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(false, "X", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(false, "C", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(true, "V", false, game);
-				wait(0.1);
-				game:GetService("VirtualInputManager"):SendKeyEvent(false, "V", false, game);
-			end
-		end);
-	end
-end);
-v73:Seperator("PvP");
-v73:Toggle("Aimbot Nearest", false, function(v535)
-	_G.AimNearest = v535;
-end);
-local v107 = game:GetService("Players");
-local v27 = v107.LocalPlayer;
-local v108 = game:GetService("RunService");
-local function v109()
-	local v536 = nil;
-	local v537 = math.huge;
-	for v884, v885 in pairs(v107:GetPlayers()) do
-		if ((v885 ~= v27) and v885.Character and v885.Character:FindFirstChild("HumanoidRootPart")) then
-			if ((v885.Team ~= v27.Team) and (v885.Team.Name ~= "Marines")) then
-				local v1851 = v885.Character.HumanoidRootPart.Position;
-				local v1852 = (v27.Character.HumanoidRootPart.Position - v1851).Magnitude;
-				if (v1852 < v537) then
-					v536 = v885;
-					v537 = v1852;
-				end
-			end
-		end
-	end
-	return v536;
-end
-v108.RenderStepped:Connect(function()
-	if _G.AimNearest then
-		local v1553 = v109();
-		if v1553 then
-			_G.Aim_Players = v1553;
-		end
-	end
-end);
-local v110 = getrawmetatable(game);
-local v111 = v110.__namecall;
-setreadonly(v110, false);
-v110.__namecall = newcclosure(function(...)
-	local v538 = getnamecallmethod();
-	local v539 = {
-		...
-	};
-	if (tostring(v538) == "FireServer") then
-		if (tostring(v539[1]) == "RemoteEvent") then
-			if ((tostring(v539[2]) ~= "true") and (tostring(v539[2]) ~= "false")) then
-				if (_G.AimNearest and _G.Aim_Players) then
-					v539[2] = _G.Aim_Players.Character.HumanoidRootPart.Position;
-					return v111(unpack(v539));
-				end
-			end
-		end
-	end
-	return v111(...);
-end);
-setreadonly(v110, true);
 v73:Toggle("Enabled PvP", false, function(v540)
 	_G.EnabledPvP = v540;
 end);
@@ -10616,23 +10320,6 @@ spawn(function()
 				if (game:GetService("Players").LocalPlayer.PlayerGui.Main.PvpDisabled.Visible == true) then
 					game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EnablePvp");
 				end
-			end
-		end
-	end);
-end);
-v73:Button("Set Position Spawn", function()
-	_G.Pos_Spawn = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame;
-	Com();
-end);
-v73:Toggle("Safe Mode", false, function(v542)
-	_G.Safe_Mode = v542;
-	StopTween(_G.Safe_Mode);
-end);
-spawn(function()
-	pcall(function()
-		while wait() do
-			if _G.Safe_Mode then
-				game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame;
 			end
 		end
 	end);
