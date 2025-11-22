@@ -1,48 +1,43 @@
-print("Break");
 local v0 = require(game:GetService("ReplicatedStorage").Notification);
-v0.new("<Color=Cyan>Welcome viCat Hub<Color=/>"):Display();
+v0.new("<Color=Cyan>Welcome to Ten Hub<Color=/>"):Display();
 wait(0.5);
 v0.new("<Color=Yellow>Everyone Goes to Discord to Communicate<Color=/>"):Display();
-wait(1)
+local v122 = game:GetService("Players");
+game:GetService("StarterGui"):SetCore("SendNotification", {
+	Title = "Mèo Bypass",
+	Text = "Loading...",
+	Icon = "rbxthumb://type=Asset&id=83190276951914&w=150&h=150",
+	Duration = 10
+});
+wait(1);
 repeat
-	task.wait()
+	wait();
 until game.Players.LocalPlayer
-
-if not game:IsLoaded() then
-	game.Loaded:Wait()
+if  not game:IsLoaded() then
+	game.Loaded:Wait();
 end
-
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer.PlayerGui
-local MainGui = PlayerGui:WaitForChild("Main (minimal)")
-local ChooseTeam = MainGui:WaitForChild("ChooseTeam")
-
-if ChooseTeam then
+local v1 = task;
+if game:GetService("Players").LocalPlayer.PlayerGui.Main:FindFirstChild("ChooseTeam") then
 	repeat
-		task.wait()
-		
-		if ChooseTeam.Visible then
-			local teamName = (getgenv().Team == "Marines") and "Marines" or "Pirates"
-			local teamButton = ChooseTeam.Container:FindFirstChild(teamName)
-			
-			if teamButton then
-				local textButton = teamButton.Frame.TextButton
-				
-				-- Fire TouchTapInWorld connections
-				for _, connection in pairs(getconnections(UserInputService.TouchTapInWorld)) do
-					connection:Fire()
+		task.wait();
+		if (game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("Main").ChooseTeam.Visible == true) then
+			if (getgenv().Team == "Marines") then
+				for v1932, v1933 in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container['Marines'].Frame.TextButton.Activated)) do
+					for v2129, v2130 in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
+						v2130:Fire();
+					end
+					v1933.Function();
 				end
-				
-				-- Fire button activated connections
-				for _, connection in pairs(getconnections(textButton.Activated)) do
-					connection.Function()
+			else
+				for v1934, v1935 in pairs(getconnections(game:GetService("Players").LocalPlayer.PlayerGui.Main.ChooseTeam.Container['Pirates'].Frame.TextButton.Activated)) do
+					for v2131, v2132 in pairs(getconnections(game:GetService("UserInputService").TouchTapInWorld)) do
+						v2132:Fire();
+					end
+					v1935.Function();
 				end
 			end
 		end
-		
-	until LocalPlayer.Team ~= nil
+	until (game.Players.LocalPlayer.Team ~= nil) and game:IsLoaded()
 end
 if  not LPH_OBFUSCATED then
 	function LPH_JIT_MAX(...)
@@ -65,7 +60,7 @@ end);
 spawn(function()
 	for v623, v624 in pairs(game:GetDescendants()) do
 		if (v624:IsA("ParticleEmitter") or v624:IsA("Trail")) then
-			v624.Lifetime = NumberRange.new(0);
+			v624.Lifetime = NumberRange.new(-0);
 		elseif v624:IsA("Explosion") then
 			v624.BlastPressure = 1;
 			v624.BlastRadius = 1;
@@ -1736,50 +1731,6 @@ function UpdatePlayerChams()
 		end);
 	end
 end
-function UpdateChestChams()
-	for v718, v719 in pairs(game.Workspace:GetChildren()) do
-		pcall(function()
-			if string.find(v719.Name, "Chest") then
-				if ChestESP then
-					if string.find(v719.Name, "Chest") then
-						if  not v719:FindFirstChild("NameEsp"   .. Number ) then
-							local v2523 = Instance.new("BillboardGui", v719);
-							v2523.Name = "NameEsp"   .. Number ;
-							v2523.ExtentsOffset = Vector3.new(0, 1, 0);
-							v2523.Size = UDim2.new(1, 200, 1, 30);
-							v2523.Adornee = v719;
-							v2523.AlwaysOnTop = true;
-							local v2529 = Instance.new("TextLabel", v2523);
-							v2529.Font = Enum.Font.GothamSemibold;
-							v2529.FontSize = "Size14";
-							v2529.TextWrapped = true;
-							v2529.Size = UDim2.new(1, 0, 1, 0);
-							v2529.TextYAlignment = "Top";
-							v2529.BackgroundTransparency = 1;
-							v2529.TextStrokeTransparency = 0.5;
-							if (v719.Name == "Chest1") then
-								v2529.TextColor3 = Color3.fromRGB(109, 109, 109);
-								v2529.Text = "Chest 1"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v719.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-							if (v719.Name == "Chest2") then
-								v2529.TextColor3 = Color3.fromRGB(173, 158, 21);
-								v2529.Text = "Chest 2"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v719.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-							if (v719.Name == "Chest3") then
-								v2529.TextColor3 = Color3.fromRGB(85, 255, 255);
-								v2529.Text = "Chest 3"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v719.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-						else
-							v719["NameEsp"   .. Number ].TextLabel.Text = v719.Name   .. "   \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v719.Position).Magnitude / 3 )   .. " Distance" ;
-						end
-					end
-				elseif v719:FindFirstChild("NameEsp"   .. Number ) then
-					v719:FindFirstChild("NameEsp"   .. Number ):Destroy();
-				end
-			end
-		end);
-	end
-end
 function UpdateDevilChams()
 	for v720, v721 in pairs(game.Workspace:GetChildren()) do
 		pcall(function()
@@ -2006,50 +1957,6 @@ function UpdatePlayerChams()
 					end
 				elseif v733.Character.Head:FindFirstChild("NameEsp"   .. Number ) then
 					v733.Character.Head:FindFirstChild("NameEsp"   .. Number ):Destroy();
-				end
-			end
-		end);
-	end
-end
-function UpdateChestChams()
-	for v734, v735 in pairs(game.Workspace:GetChildren()) do
-		pcall(function()
-			if string.find(v735.Name, "Chest") then
-				if ChestESP then
-					if string.find(v735.Name, "Chest") then
-						if  not v735:FindFirstChild("NameEsp"   .. Number ) then
-							local v2545 = Instance.new("BillboardGui", v735);
-							v2545.Name = "NameEsp"   .. Number ;
-							v2545.ExtentsOffset = Vector3.new(0, 1, 0);
-							v2545.Size = UDim2.new(1, 200, 1, 30);
-							v2545.Adornee = v735;
-							v2545.AlwaysOnTop = true;
-							local v2551 = Instance.new("TextLabel", v2545);
-							v2551.Font = Enum.Font.GothamSemibold;
-							v2551.FontSize = "Size14";
-							v2551.TextWrapped = true;
-							v2551.Size = UDim2.new(1, 0, 1, 0);
-							v2551.TextYAlignment = "Top";
-							v2551.BackgroundTransparency = 1;
-							v2551.TextStrokeTransparency = 0.5;
-							if (v735.Name == "Chest1") then
-								v2551.TextColor3 = Color3.fromRGB(109, 109, 109);
-								v2551.Text = "Chest 1"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v735.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-							if (v735.Name == "Chest2") then
-								v2551.TextColor3 = Color3.fromRGB(173, 158, 21);
-								v2551.Text = "Chest 2"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v735.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-							if (v735.Name == "Chest3") then
-								v2551.TextColor3 = Color3.fromRGB(85, 255, 255);
-								v2551.Text = "Chest 3"   .. " \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v735.Position).Magnitude / 3 )   .. " Distance" ;
-							end
-						else
-							v735["NameEsp"   .. Number ].TextLabel.Text = v735.Name   .. "   \n"   .. v26((game:GetService("Players").LocalPlayer.Character.Head.Position - v735.Position).Magnitude / 3 )   .. " Distance" ;
-						end
-					end
-				elseif v735:FindFirstChild("NameEsp"   .. Number ) then
-					v735:FindFirstChild("NameEsp"   .. Number ):Destroy();
 				end
 			end
 		end);
@@ -2310,42 +2217,6 @@ function InfAb()
 end
 local v27 = game:GetService("Players").LocalPlayer;
 local v28 = v27.Character.Energy.Value;
-function infinitestam()
-	v27.Character.Energy.Changed:connect(function()
-		if InfiniteEnergy then
-			v27.Character.Energy.Value = v28;
-		end
-	end);
-end
-spawn(function()
-	pcall(function()
-		while wait(0.1) do
-			if InfiniteEnergy then
-				wait(0.1);
-				v28 = v27.Character.Energy.Value;
-				infinitestam();
-			end
-		end
-	end);
-end);
-function NoDodgeCool()
-	if nododgecool then
-		for v1627, v1628 in next, getgc() do
-			if game:GetService("Players").LocalPlayer.Character.Dodge then
-				if ((typeof(v1628) == "function") and (getfenv(v1628).script == game:GetService("Players").LocalPlayer.Character.Dodge)) then
-					for v2305, v2306 in next, getupvalues(v1628) do
-						if (tostring(v2306) == "0.1") then
-							repeat
-								wait(0.1);
-								setupvalue(v1628, v2305, 0);
-							until  not nododgecool
-						end
-					end
-				end
-			end
-		end
-	end
-end
 local v29 = "indq9pdnq0";
 local v30 = "Fpjq90pdfhipqdm";
 local v31;
@@ -2898,23 +2769,41 @@ local module = {
 }
 
 local Player = game:GetService("Players")
+local LocalPlayer = Player.LocalPlayer
 
 function module:GetBladeHits()
   local BladeHits = {}
   
-  for _, Enemy in game:GetService("Workspace").Enemies:GetChildren() do
-    if Enemy:FindFirstChild("HumanoidRootPart") then
-      table.insert(BladeHits, Enemy.HumanoidRootPart)
+  -- Attack Mobs
+  if self.attackMobs then
+    for _, Enemy in game:GetService("Workspace").Enemies:GetChildren() do
+      if Enemy:FindFirstChild("HumanoidRootPart") then
+        table.insert(BladeHits, Enemy.HumanoidRootPart)
+      end
     end
   end
   
+  -- Attack Players
+  if self.attackPlayers then
+    for _, Plr in pairs(Player:GetPlayers()) do
+      if Plr ~= LocalPlayer and Plr.Character then
+        local Character = Plr.Character
+        if Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("Humanoid") then
+          if Character.Humanoid.Health > 0 then
+            local TargetPart = Character:FindFirstChild("Head") or Character.HumanoidRootPart
+            table.insert(BladeHits, TargetPart)
+          end
+        end
+      end
+    end
+  end
   return BladeHits
 end
 
 function module:attack()
   local BladeHits = self:GetBladeHits()
   
-  game:GetService("ReplicatedStorage").Modules.Net:WaitForChild("RE/RegisterAttack"):FireServer(0)
+  game:GetService("ReplicatedStorage").Modules.Net:WaitForChild("RE/RegisterAttack"):FireServer()
   
   for _, Hit in BladeHits do
     game:GetService("ReplicatedStorage").Modules.Net:WaitForChild("RE/RegisterHit"):FireServer(Hit)
@@ -2922,8 +2811,10 @@ function module:attack()
 end
 
 spawn(function()
-  while wait(0,01) do -- Tăng tốc độ tấn công bằng cách giảm thời gian chờ
+  while wait(v63) do -- Tăng tốc độ tấn công bằng cách giảm thời gian chờ
+  if Fast_Attack then
     module:attack()
+    end
   end
 		end)
 function CheckStun()
@@ -3026,6 +2917,7 @@ v1.spawn(function()
 		end);
 	end
 end);
+wait(2)
 local v66 = v5:Window(Enum.KeyCode.RightControl);
 local v67 = v66:T(" Status", "rbxassetid://10734984606");
 local v68 = v66:T(" General", "rbxassetid://10723407389");
@@ -3180,11 +3072,9 @@ task.spawn(function()
 end);
 local v86 = {
 	"Normal Attack",
-	"Fast Attack",
-	"Super Attack",
-	"Xeter Attack"
+	"Fast Attack"
 };
-v63 = "Xeter Attack";
+v63 = "Fast Attack";
 v68:Dropdown("Fast Attack Delay", v86, function(v377)
 	v63 = v377;
 end);
@@ -3196,10 +3086,6 @@ spawn(function()
 					v63 = 0.1;
 				elseif (v63 == "Fast Attack") then
 					v63 = 0.07;
-				elseif (v63 == "Super Attack") then
-					v63 = 0.04;
-				elseif (v63 == "Xeter Attack") then
-					v63 = 0.02;
 				end
 			end);
 		end
@@ -3274,7 +3160,7 @@ spawn(function()
 	end
 end);
 if World1 then
-	v68:Toggle("Auto Farm Fast (Farm Lv.1-300)", _G.FarmFast, function(v1388)
+	v68:Toggle("Auto Farm Fast (Farm Lv.1-150)", _G.FarmFast, function(v1388)
 		_G.Farmfast = v1388;
 		_G.Stats_Kaitun = v1388;
 		StopTween(_G.Farmfast);
@@ -3288,13 +3174,9 @@ if World1 then
 						_G.Level = false;
 						_G.Farmfast = true;
 					end
-					if (v1879 >= 75) then
-						_G.Farmfast = false;
-						_G.PlayerHunter = true;
-					end
-					if (v1879 >= 200) then
+					if (v1879 >= 150) then
+					_G.Farmfast = false;
 						_G.Level = true;
-						_G.PlayerHunter = false;
 					end
 					if (v1879 >= 1) then
 						game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", Vector3.new( -7894.6176757813, 5547.1416015625, -380.29119873047));
@@ -3324,53 +3206,6 @@ if World1 then
 		end);
 	end);
 end
-v68:Toggle("Auto Kaitun", false, function(v379)
-	_G.Level = v379;
-	_G.SelectWeapon = "Combat";
-	_G.Stats_Kaitun = v379;
-	_G.Superhuman = v379;
-	_G.SecondSea = v379;
-	_G.ThirdSea = v379;
-	_G.BuyLegendarySword = v379;
-	_G.StoreFruit = v379;
-	_G.Random_Auto = v379;
-	_G.BuyAllAib = v379;
-	_G.BuyAllSword = v379;
-	StopTween(_G.Farm);
-end);
-spawn(function()
-	while wait() do
-		if _G.BuyAllSword then
-			pcall(function()
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Cutlass");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Katana");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Iron Mace");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Duel Katana");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Triple Katana");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Pipe");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Bisento");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Dual-Headed Blade");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyItem", "Soul Cane");
-				if _G.BuyHop then
-					wait(10);
-					Hop();
-				end
-			end);
-		end
-		if _G.BuyAllAib then
-			pcall(function()
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("KenTalk", "Buy");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyHaki", "Geppo");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyHaki", "Buso");
-				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyHaki", "Soru");
-				if _G.HopBuy then
-					wait(10);
-					Hop();
-				end
-			end);
-		end
-	end
-end);
 v68:Toggle("Auto Farm Nearest", _G.FarmNearest, function(v380)
 	_G.FarmNearest = v380;
 	StopTween(_G.FarmNearest);
@@ -3474,92 +3309,6 @@ end);
 v68:Toggle("Auto Elite Hunter Hop", _G.EliteHunterHop, function(v382)
 	_G.EliteHunterHop = v382;
 end);
-v68:Seperator("Chest Farm");
-v68:Toggle("Auto Farm Chest", false, function(v383)
-	AutoFarmChest = v383;
-	StopTween(AutoFarmChest);
-end);
-_G.MagnitudeAdd = 0;
-local function v89()
-	local v384 = {};
-	for v782, v783 in pairs(game:GetService("Workspace"):GetChildren()) do
-		if (v783.Name:find("Chest") and v783:IsA("BasePart")) then
-			table.insert(v384, v783);
-		end
-	end
-	return v384;
-end
-local function v90(v385)
-	table.sort(v385, function(v784, v785)
-		local v786 = (v784.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude;
-		local v787 = (v785.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude;
-		return v786 < v787 ;
-	end);
-end
-spawn(function()
-	while wait() do
-		if AutoFarmChest then
-			local v1652 = v89();
-			v90(v1652);
-			for v1740, v1741 in ipairs(v1652) do
-				if ((v1741.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= (5000 + _G.MagnitudeAdd)) then
-					repeat
-						wait();
-						if game:GetService("Workspace"):FindFirstChild(v1741.Name) then
-							topos(v1741.CFrame);
-						end
-					until (AutoFarmChest == false) or  not v1741.Parent
-					topos(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame);
-					_G.MagnitudeAdd = _G.MagnitudeAdd + 1500 ;
-					break;
-				end
-			end
-		end
-	end
-end);
-v68:Toggle("Auto Stop Items", function(v386)
-	_G.StopItemsChest = v386;
-end);
-spawn(function()
-	while wait() do
-		pcall(function()
-			if _G.StopItemsChest then
-				if (game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("God's Chalice") or game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Fist of Darkness")) then
-					_G.ChestBypass = false;
-					topos(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame);
-				end
-			end
-		end);
-	end
-end);
-v68:Toggle("Auto Farm Chest Mirage island", false, function(v387)
-	_G.ChestMirage = v387;
-	StopTween(_G.ChestMirage);
-end);
-_G.MagnitudeAdd = 0;
-spawn(function()
-	while wait() do
-		if _G.ChestMirage then
-			for v1742, v1743 in pairs(game:GetService("Workspace"):GetChildren()) do
-				if v1743.Name:find("FragChest") then
-					if game:GetService("Workspace"):FindFirstChild(v1743.Name) then
-						if ((v1743.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= (5000 + _G.MagnitudeAdd)) then
-							repeat
-								wait();
-								if game:GetService("Workspace"):FindFirstChild(v1743.Name) then
-									topos(v1743.CFrame);
-								end
-							until (_G.ChestMirage == false) or  not v1743.Parent
-							TP(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame);
-							_G.MagnitudeAdd = _G.MagnitudeAdd + 1500 ;
-							break;
-						end
-					end
-				end
-			end
-		end
-	end
-end);
 v68:Seperator("Pirates Raid");
 v68:Toggle("Auto Pirates Raid", _G.Carvender, function(v388)
 	_G.RaidPirate = v388;
@@ -3637,6 +3386,7 @@ spawn(function()
 end);
 v68:Toggle("Auto Farm Bone", _G.Bone, function(v389)
 	_G.Bone = v389;
+	BonesBring = v389
 	StopTween(_G.Bone);
 end);
 v68:Toggle("Accept Quest Bone", true, function(v390)
@@ -3658,7 +3408,6 @@ spawn(function()
 									v2072.HumanoidRootPart.CanCollide = false;
 									v2072.Humanoid.WalkSpeed = 0;
 									v2072.Head.CanCollide = false;
-									BonesBring = true;
 									PosMonBone = v2072.HumanoidRootPart.CFrame;
 									topos(v2072.HumanoidRootPart.CFrame * Pos );
 								until  not _G.Bone or  not v2072.Parent or (v2072.Humanoid.Health <= 0)
@@ -4767,12 +4516,14 @@ end);
 v69:Toggle("Fast Attack", true, function(v413)
 	Fast_Attack = v413;
 	DamageAura = v413;
-	ClickNoCooldown = v413;
 	v51.Enabled = not v413;
 end);
-v69:Toggle("No Attack Animation", true, function(v415)
-	NoAttackAnimation = v415;
+v69:Toggle("Attack Mob", true, function(v415)
+  attackMobs = v415
 end);
+v69:Toggle("Attack Player", true, function(Pla)
+  attackPlayers = Pla
+  end);
 v69:Toggle("Disabled Notifications", false, function(v416)
 	_G.Remove_trct = v416;
 end);
@@ -4807,37 +4558,9 @@ spawn(function()
 		end
 	end
 end);
-v69:Toggle("Invisible Monsters", _G.hadesinvis, function(v420)
-	_G.hadesinvis = v420;
-	while wait() do
-		if _G.hadesinvis then
-			pcall(function()
-				for v1808, v1809 in pairs(game:GetService("Workspace").Enemies:GetDescendants()) do
-					if (v1809.ClassName == "MeshPart") then
-						v1809.Transparency = 1;
-					end
-				end
-				for v1810, v1811 in pairs(game:GetService("Workspace").Enemies:GetDescendants()) do
-					if (v1811.Name == "Head") then
-						v1811.Transparency = 1;
-					end
-				end
-				for v1812, v1813 in pairs(game:GetService("Workspace").Enemies:GetDescendants()) do
-					if (v1813.ClassName == "Accessory") then
-						v1813.Handle.Transparency = 1;
-					end
-				end
-				for v1814, v1815 in pairs(game:GetService("Workspace").Enemies:GetDescendants()) do
-					if (v1815.ClassName == "Decal") then
-						v1815.Transparency = 1;
-					end
-				end
-			end);
-		end
-	end
-end);
 v69:Toggle("Fps Boost", false, function(v421)
 	if v421 then
+	wait(1);
 		cleanlag();
 	end
 end);
@@ -9936,10 +9659,6 @@ function UpdateIslandESPKitsune()
 		end);
 	end
 end
-v74:Toggle("ESP Chest", false, function(v437)
-	ChestESP = v437;
-	UpdateChestChams();
-end);
 v74:Toggle("ESP Fruit", false, function(v438)
 	DevilFruitESP = v438;
 	while DevilFruitESP do
@@ -10310,6 +10029,313 @@ v74:Toggle("Remove Fog", RemoveFog, function(v514)
 		end
 	end
 end);
+v74:Toggle("Remove Damage", true, function()
+	for v869, v870 in pairs(game.Workspace:GetDescendants()) do
+		if (v870.Name == "DamageCounter") then
+			v870:Destroy();
+		end
+	end
+	for v871, v872 in pairs(game.ReplicatedStorage:GetDescendants()) do
+		if (v872.Name == "DamageCounter") then
+			v872:Destroy();
+		end
+	end
+end);
+v74:Button("Unlock FPS", function()
+	setfpscap(9999999);
+end);
+v74:Seperator("Abilities");
+v74:Toggle("Dodge No Cooldown", false, function(v515)
+	nododgecool = v515;
+	NoDodgeCool();
+end);
+v74:Toggle("Infinite Energy", false, function(v516)
+	InfiniteEnergy = v516;
+	v28 = v27.Character.Energy.Value;
+end);
+v74:Toggle("Infinite Ability", false, function(v518)
+	InfAbility = v518;
+	if (value == false) then
+		game:GetService("Players").LocalPlayer.Character.HumanoidRootPart:FindFirstChild("Agility"):Destroy();
+	end
+end);
+spawn(function()
+	while wait() do
+		if InfAbility then
+			InfAb();
+		end
+	end
+end);
+v74:Toggle("Infinite Obversation Range", getgenv().InfiniteObRange, function(v519)
+	getgenv().InfiniteObRange = v519;
+	local v521 = game:GetService("Players").LocalPlayer.VisionRadius.Value;
+	while getgenv().InfiniteObRange do
+		wait();
+		local v873 = game:GetService("Players").LocalPlayer;
+		local v874 = v873.Character;
+		local v875 = v873.VisionRadius;
+		if v873 then
+			if (v874.Humanoid.Health <= 0) then
+				wait(5);
+			end
+			v875.Value = math.huge;
+		elseif ((getgenv().InfiniteObRange == false) and v873) then
+			v875.Value = v521;
+		end
+	end
+end);
+v74:Toggle("Infinite Geppo", getgenv().InfGeppo, function(v522)
+	getgenv().InfGeppo = v522;
+end);
+spawn(function()
+	while wait() do
+		pcall(function()
+			if getgenv().InfGeppo then
+				for v1847, v1848 in next, getgc() do
+					if game:GetService("Players").LocalPlayer.Character.Geppo then
+						if ((typeof(v1848) == "function") and (getfenv(v1848).script == game:GetService("Players").LocalPlayer.Character.Geppo)) then
+							for v2587, v2588 in next, getupvalues(v1848) do
+								if (tostring(v2587) == "9") then
+									repeat
+										wait(0.1);
+										setupvalue(v1848, v2587, 0);
+									until  not getgenv().InfGeppo or (game:GetService("Players").LocalPlayer.Character.Humanoid.Health <= 0)
+								end
+							end
+						end
+					end
+				end
+			end
+		end);
+	end
+end);
+v74:Toggle("Infinite Soru", _G.Infsoru, function(v524)
+	_G.Infsoru = v524;
+end);
+spawn(function()
+	while wait() do
+		pcall(function()
+			if (_G.Infsoru and (game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil)) then
+				for v1849, v1850 in next, getgc() do
+					if game:GetService("Players").LocalPlayer.Character.Soru then
+						if ((typeof(v1850) == "function") and (getfenv(v1850).script == game:GetService("Players").LocalPlayer.Character.Soru)) then
+							for v2589, v2590 in next, getupvalues(v1850) do
+								if (typeof(v2590) == "table") then
+									repeat
+										wait(0.1);
+										v2590.LastUse = 0;
+									until  not _G.Infsoru or (game:GetService("Players").LocalPlayer.Character.Humanoid.Health <= 0)
+								end
+							end
+						end
+					end
+				end
+			end
+		end);
+	end
+end);
+v74:Button("Remove Lava", function()
+	for v876, v877 in pairs(game.Workspace:GetDescendants()) do
+		if (v877.Name == "Lava") then
+			v877:Destroy();
+		end
+	end
+	for v878, v879 in pairs(game.ReplicatedStorage:GetDescendants()) do
+		if (v879.Name == "Lava") then
+			v879:Destroy();
+		end
+	end
+end);
+local v105 = v73:Label("Players");
+spawn(function()
+	while wait() do
+		pcall(function()
+			for v1670, v1671 in pairs(game:GetService("Players"):GetPlayers()) do
+				if (v1670 == 12) then
+					v105:Set("Players:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12"   .. " "   .. "(Max)" );
+				elseif (v1670 == 1) then
+					v105:Set("Player:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12" );
+				else
+					v105:Set("Players:"   .. " "   .. v1670   .. " "   .. "/"   .. " "   .. "12" );
+				end
+			end
+		end);
+	end
+end);
+Playerslist = {};
+for v525, v526 in pairs(game:GetService("Players"):GetChildren()) do
+	table.insert(Playerslist, v526.Name);
+end
+local v106 = v73:Dropdown("Select Player", Playerslist, function(v527)
+	_G.SelectPly = v527;
+end);
+v73:Button("Refresh Player", function()
+	Playerslist = {};
+	v106:Clear();
+	for v880, v881 in pairs(game:GetService("Players"):GetChildren()) do
+		v106:Add(v881.Name);
+	end
+end);
+v73:Toggle("Spectate Player", false, function(v528)
+	SpectatePlys = v528;
+	local v529 = game:GetService("Players").LocalPlayer.Character.Humanoid;
+	local v530 = game:GetService("Players"):FindFirstChild(_G.SelectPly);
+	repeat
+		wait(0.1);
+		game:GetService("Workspace").Camera.CameraSubject = game:GetService("Players"):FindFirstChild(_G.SelectPly).Character.Humanoid;
+	until SpectatePlys == false
+	game:GetService("Workspace").Camera.CameraSubject = game:GetService("Players").LocalPlayer.Character.Humanoid;
+end);
+v73:Toggle("Teleport", false, function(v533)
+	_G.TeleportPly = v533;
+	pcall(function()
+		if _G.TeleportPly then
+			repeat
+				topos(game:GetService("Players")[_G.SelectPly].Character.HumanoidRootPart.CFrame);
+				wait();
+			until _G.TeleportPly == false
+		end
+		StopTween(_G.TeleportPly);
+	end);
+end);
+v73:Seperator("Quest Player");
+v73:Button("Get Quest Elite Players", function()
+	game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("PlayerHunter");
+end);
+v73:Toggle("Auto Kill Player Quest", _G.PlayerHunter, function(v534)
+	_G.PlayerHunter = v534;
+	StopTween(_G.PlayerHunter);
+end);
+spawn(function()
+	game:GetService("RunService").Heartbeat:connect(function()
+		pcall(function()
+			if _G.PlayerHunter then
+				if game:GetService("Players").LocalPlayer.Character:FindFirstChild("Humanoid") then
+					game:GetService("Players").LocalPlayer.Character.Humanoid:ChangeState(11);
+				end
+			end
+		end);
+	end);
+end);
+spawn(function()
+	pcall(function()
+		while wait(0.1) do
+			if _G.PlayerHunter then
+				if (game:GetService("Players").LocalPlayer.PlayerGui.Main.PvpDisabled.Visible == true) then
+					game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EnablePvp");
+				end
+			end
+		end
+	end);
+end);
+spawn(function()
+	while wait() do
+		if _G.PlayerHunter then
+			if (game:GetService("Players").LocalPlayer.PlayerGui.Main.Quest.Visible == false) then
+				wait(0.5);
+				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("PlayerHunter");
+			else
+				for v1918, v1919 in pairs(game:GetService("Workspace").Characters:GetChildren()) do
+					if string.find(game:GetService("Players").LocalPlayer.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text, v1919.Name) then
+						repeat
+							wait();
+							if  not game.Players.LocalPlayer.Character:FindFirstChild("HasBuso") then
+								local v2633 = {
+									[1] = "Buso"
+								};
+								game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(v2633));
+							end
+							EquipWeapon(_G.SelectWeapon);
+							Useskill = true;
+							topos(v1919.HumanoidRootPart.CFrame * CFrame.new(1, 7, 3) );
+							v1919.HumanoidRootPart.Size = Vector3.new(60, 60, 60);
+							game:GetService("VirtualUser"):CaptureController();
+							game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672));
+						until (_G.PlayerHunter == false) or (v1919.Humanoid.Health <= 0)
+						Useskill = false;
+						game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AbandonQuest");
+					end
+				end
+			end
+		end
+	end
+end);
+spawn(function()
+	while wait() do
+		pcall(function()
+			if Useskill then
+				game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(false, "Z", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(false, "X", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(false, "C", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(true, "V", false, game);
+				wait(0.1);
+				game:GetService("VirtualInputManager"):SendKeyEvent(false, "V", false, game);
+			end
+		end);
+	end
+end);
+v73:Seperator("PvP");
+v73:Toggle("Aimbot Nearest", false, function(v535)
+	_G.AimNearest = v535;
+end);
+local v107 = game:GetService("Players");
+local v27 = v107.LocalPlayer;
+local v108 = game:GetService("RunService");
+local function v109()
+	local v536 = nil;
+	local v537 = math.huge;
+	for v884, v885 in pairs(v107:GetPlayers()) do
+		if ((v885 ~= v27) and v885.Character and v885.Character:FindFirstChild("HumanoidRootPart")) then
+			if ((v885.Team ~= v27.Team) and (v885.Team.Name ~= "Marines")) then
+				local v1851 = v885.Character.HumanoidRootPart.Position;
+				local v1852 = (v27.Character.HumanoidRootPart.Position - v1851).Magnitude;
+				if (v1852 < v537) then
+					v536 = v885;
+					v537 = v1852;
+				end
+			end
+		end
+	end
+	return v536;
+end
+v108.RenderStepped:Connect(function()
+	if _G.AimNearest then
+		local v1553 = v109();
+		if v1553 then
+			_G.Aim_Players = v1553;
+		end
+	end
+end);
+local v110 = getrawmetatable(game);
+local v111 = v110.__namecall;
+setreadonly(v110, false);
+v110.__namecall = newcclosure(function(...)
+	local v538 = getnamecallmethod();
+	local v539 = {
+		...
+	};
+	if (tostring(v538) == "FireServer") then
+		if (tostring(v539[1]) == "RemoteEvent") then
+			if ((tostring(v539[2]) ~= "true") and (tostring(v539[2]) ~= "false")) then
+				if (_G.AimNearest and _G.Aim_Players) then
+					v539[2] = _G.Aim_Players.Character.HumanoidRootPart.Position;
+					return v111(unpack(v539));
+				end
+			end
+		end
+	end
+	return v111(...);
+end);
+setreadonly(v110, true);
 v73:Toggle("Enabled PvP", false, function(v540)
 	_G.EnabledPvP = v540;
 end);
@@ -10320,6 +10346,23 @@ spawn(function()
 				if (game:GetService("Players").LocalPlayer.PlayerGui.Main.PvpDisabled.Visible == true) then
 					game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("EnablePvp");
 				end
+			end
+		end
+	end);
+end);
+v73:Button("Set Position Spawn", function()
+	_G.Pos_Spawn = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame;
+	Com();
+end);
+v73:Toggle("Safe Mode", false, function(v542)
+	_G.Safe_Mode = v542;
+	StopTween(_G.Safe_Mode);
+end);
+spawn(function()
+	pcall(function()
+		while wait() do
+			if _G.Safe_Mode then
+				game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame;
 			end
 		end
 	end);
@@ -11644,10 +11687,11 @@ v79:Button("Change Buso Haki State", function()
 		game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("ChangeBusoStage", 5);
 	end
 end);
+wait(1)
 local v122 = game:GetService("Players");
 game:GetService("StarterGui"):SetCore("SendNotification", {
-	Title = "Test Roblox Hub",
-	Text = "Loading...",
+	Title = "Mèo Bypass",
+	Text = "Đã tải Xong",
 	Icon = "rbxthumb://type=Asset&id=83190276951914&w=150&h=150",
 	Duration = 10
 });
@@ -11667,230 +11711,3 @@ local v124 = getupvalues(v123)[2];
 local v125 = require(game.ReplicatedStorage.CombatFramework.RigLib);
 local v126 = tick();
 new = {};
-function FastAttackConnectorFunction()
-	repeat
-		wait();
-	until game:IsLoaded()
-	repeat
-		task.wait();
-	until game.ReplicatedStorage
-	repeat
-		task.wait();
-	until game.Players
-	repeat
-		task.wait();
-	until game.Players.LocalPlayer
-	repeat
-		task.wait();
-	until game.Players.LocalPlayer:FindFirstChild("PlayerGui")
-	local v610 = require(game:GetService("Players").LocalPlayer.PlayerScripts:WaitForChild("CombatFramework"));
-	local v611 = getupvalues(v610)[2];
-	local v612 = require(game:GetService("Players")['LocalPlayer'].PlayerScripts.CombatFramework.RigController);
-	local v613 = getupvalues(v612)[2];
-	local v614 = require(game.ReplicatedStorage.CombatFramework.RigLib);
-	local v615 = tick();
-	ReturnFunctions = {};
-	function CurrentWeapon()
-		local v891 = v611.activeController;
-		local v892 = v891.blades[1];
-		if  not v892 then
-			return game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool").Name;
-		end
-		pcall(function()
-			while v892.Parent ~= game.Players.LocalPlayer.Character  do
-				v892 = v892.Parent;
-			end
-		end);
-		if  not v892 then
-			return game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool").Name;
-		end
-		return v892;
-	end
-	function AttackFunctgggggion()
-		if (game.Players.LocalPlayer.Character.Stun.Value ~= 0) then
-			return nil;
-		end
-		local v893 = v611.activeController;
-		v893.hitboxMagnitude = 55;
-		if (v893 and v893.equipped) then
-			for v1776 = 1, 1 do
-				local v1777 = require(game.ReplicatedStorage.CombatFramework.RigLib).getBladeHits(game.Players.LocalPlayer.Character, {
-					game.Players.LocalPlayer.Character.HumanoidRootPart
-				}, 60);
-				if ( #v1777 > 0) then
-					local v1926 = debug.getupvalue(v893.attack, 5);
-					local v1927 = debug.getupvalue(v893.attack, 6);
-					local v1928 = debug.getupvalue(v893.attack, 4);
-					local v1929 = debug.getupvalue(v893.attack, 7);
-					local v1930 = ((v1926 * 798405) + (v1928 * 727595)) % v1927 ;
-					local v1931 = (v1928 * 798405)(function()
-						v1930 = ((v1930 * v1927) + NumberAc13) % 1099511627776 ;
-						v1926 = math.floor(v1930 / v1927 );
-						v1928 = v1930 - (v1926 * v1927) ;
-					end)();
-					v1929 = v1929 + 1 ;
-					debug.setupvalue(v893.attack, 5, v1926);
-					debug.setupvalue(v893.attack, 6, v1927);
-					debug.setupvalue(v893.attack, 4, v1928);
-					debug.setupvalue(v893.attack, 7, v1929);
-					for v2127, v2128 in pairs(v893.animator.anims.basic) do
-						v2128:Play(0.01, 0.01, 0.01);
-					end
-					if (game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool") and v893.blades and v893.blades[1]) then
-						game:GetService("ReplicatedStorage").RigControllerEvent:FireServer("weaponChange", tostring(CurrentWeapon()));
-						game:GetService("ReplicatedStorage").RigControllerEvent:FireServer("hit", v1777, 2, "");
-					end
-				end
-			end
-		end
-	end
-	CountAttack = 0;
-	TickCountAttack = tick();
-	spawn(function()
-		local v895 = getrawmetatable(game);
-		local v896 = v895.__namecall;
-		setreadonly(v895, false);
-		v895.__namecall = newcclosure(function(v1566, ...)
-			local v1567 = getnamecallmethod();
-			local v1568 = {
-				...
-			};
-			if ((v1567 == "FireServer") and (v1566.Name == "RigControllerEvent") and (v1568[1] == "hit")) then
-				CountAttack = CountAttack + 1 ;
-				TickCountAttack = tick();
-			end
-			return v896(v1566, unpack(v1568));
-		end);
-	end);
-	ReturnFunctions.GetCount = function(v898)
-		return CountAttack;
-	end;
-	ReturnFunctions.Attack = function(v899, v900)
-		UFFF = v900;
-	end;
-	FastAttackSettings = {
-		CDAAT = 80,
-		TimeWait = 10
-	};
-	spawn(function()
-		local v901 = require(game.ReplicatedStorage.Util.CameraShaker);
-		v901:Stop();
-	end);
-	ReturnFunctions.InputValue = function(v902, v903, v904)
-		FastAttackSettings['CDAAT'] = v903;
-		FastAttackSettings['TimeWait'] = v904;
-	end;
-	ReturnFunctions.InputSetting = function(v907, v908)
-		conchosetting = v908;
-	end;
-	function atack()
-		pcall(function()
-			AttackFunctgggggion();
-		end);
-	end
-	ToiCanOxi = 0;
-	conchosetting = {};
-	ReturnFunctions.GetMethod = function(v909)
-		MethodAttack = "Slow";
-		if (CountAttack < FastAttackSettings['CDAAT']) then
-			MethodAttack = "Fast";
-		end
-		return MethodAttack;
-	end;
-	spawn(function()
-		while task.wait() do
-			if UFFF then
-				pcall(function()
-					if (conchosetting and (type(conchosetting) == "table")) then
-						if (conchosetting and conchosetting["Mastery Farm"]) then
-							ToiCanOxi = 2;
-							atack();
-							if (conchosetting['DelayAttack'] and (type(conchosetting['DelayAttack']) == "number") and (conchosetting['DelayAttack'] >= 0.1)) then
-								wait(conchosetting['DelayAttack']);
-							else
-								conchosetting['DelayAttack'] = 0.2;
-								wait(conchosetting['DelayAttack']);
-							end
-						elseif (CountAttack < FastAttackSettings['CDAAT']) then
-							ToiCanOxi = ToiCanOxi + 1 ;
-							atack();
-						elseif (CountAttack >= FastAttackSettings['CDAAT']) then
-							ToiCanOxi = ToiCanOxi + 1 ;
-							atack();
-							if (conchosetting['DelayAttack'] and (type(conchosetting['DelayAttack']) == "number") and (conchosetting['DelayAttack'] >= 0.1)) then
-								wait(conchosetting['DelayAttack'] * 2 );
-							else
-								conchosetting['DelayAttack'] = 0.2;
-								wait(conchosetting['DelayAttack'] * 2 );
-							end
-						end
-					end
-				end);
-			end
-		end
-	end);
-	spawn(function()
-		while task.wait() do
-			pcall(function()
-				if ((tick() - TickCountAttack) >= FastAttackSettings['TimeWait']) then
-					CountAttack = 0;
-				end
-			end);
-		end
-	end);
-	spawn(function()
-		while task.wait() do
-			if UFFF then
-				pcall(function()
-					local v1853 = getupvalues(require(game:GetService("Players").LocalPlayer.PlayerScripts.CombatFramework))[2];
-					v1853.activeController.hitboxMagnitude = 55;
-					v1853.activeController.timeToNextAttack = 0;
-					v1853.activeController.attacking = false;
-					v1853.activeController.increment = 3;
-					v1853.activeController.blocking = false;
-					v1853.activeController.timeToNextBlock = 0;
-					v1853.activeController:attack();
-					task.wait(0.2);
-				end);
-			end
-		end
-	end);
-	spawn(function()
-		while task.wait() do
-			if UFFF then
-				pcall(function()
-					local v1860 = getupvalues(require(game:GetService("Players").LocalPlayer.PlayerScripts.CombatFramework))[2];
-					v1860.activeController.hitboxMagnitude = 55;
-					v1860.activeController.timeToNextAttack = 0;
-					v1860.activeController.attacking = false;
-					v1860.activeController.increment = 3;
-					v1860.activeController.blocking = false;
-					v1860.activeController.timeToNextBlock = 0;
-					a = math.random(1, 5);
-					if (a > 1) then
-						game:GetService("VirtualUser"):CaptureController();
-						game:GetService("VirtualUser"):Button1Down(Vector2.new(50, 50));
-					end
-					task.wait(0.2);
-				end);
-			end
-		end
-	end);
-	spawn(function()
-		while wait() do
-			if UFFF then
-				pcall(function()
-					if (CountAttack >= FastAttackSettings['CDAAT']) then
-						TickFastAttackF = tick();
-						repeat
-							wait();
-						until (tick() - TickFastAttackF) >= FastAttackSettings['TimeWait']
-						CountAttack = 0;
-					end
-				end);
-			end
-		end
-	end);
-	return ReturnFunctions;
-end
-return FastAttackConnectorFunction();
