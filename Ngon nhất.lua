@@ -4573,7 +4573,7 @@ spawn(function()
 				elseif _G.Settings.Setting["Bring Mob Mode"] == "Normal" then
 					BringMobDistance = 250;
 				elseif _G.Settings.Setting["Bring Mob Mode"] == "High" then
-					BringMobDistance = 800;
+					BringMobDistance = 340;
 				end;
 			end);
 		end;
@@ -4598,7 +4598,7 @@ spawn(function()
 		elseif _G.Settings.Setting["Fast Attack Mode"] == "Fast" then
 			_G.Settings.Setting["Fast Attack Delay"] = 0.17;
 		elseif _G.Settings.Setting["Fast Attack Mode"] == "Super Fast" then
-			_G.Settings.Setting["Fast Attack Delay"] = 0.12;
+			_G.Settings.Setting["Fast Attack Delay"] = 0.075;
 		end;
 	end;
 end);
@@ -4654,10 +4654,7 @@ local RegisterAttack = net:WaitForChild("RE/RegisterAttack");
 local RegisterHit = net:WaitForChild("RE/RegisterHit");
 function AttackModule:AttackEnemy(EnemyHead, Table)
 	if EnemyHead then
-		RegisterAttack:FireServer(0);
-		RegisterAttack:FireServer(1);
-		RegisterAttack:FireServer(2);
-		RegisterAttack:FireServer(3);
+		RegisterAttack:FireServer();
 		RegisterHit:FireServer(EnemyHead, Table or {});
 	end;
 end;
