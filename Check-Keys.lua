@@ -6,15 +6,13 @@ repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
 -- Configuration
 local API_URL = "https://vicat-hub-keys.onrender.com"
 local SCRIPT_URL = API_URL .. "/script"
-
-local player = Players.LocalPlayer
-local HWID = game:GetService("RbxAnalyticsService"):GetClientId()
 
 -- Create GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -32,7 +30,6 @@ local CheckKeyButton = Instance.new("TextButton")
 local CheckKeyCorner = Instance.new("UICorner")
 local StatusLabel = Instance.new("TextLabel")
 local CloseButton = Instance.new("TextButton")
-local HWIDLabel = Instance.new("TextLabel")
 
 -- Setup GUI Properties
 ScreenGui.Name = "VicatKeySystem"
@@ -72,18 +69,6 @@ SubtitleLabel.Font = Enum.Font.Gotham
 SubtitleLabel.Text = "Secure Script Protection"
 SubtitleLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 SubtitleLabel.TextSize = 12
-
--- HWID Label
-HWIDLabel.Name = "HWIDLabel"
-HWIDLabel.Parent = MainFrame
-HWIDLabel.BackgroundTransparency = 1
-HWIDLabel.Position = UDim2.new(0, 10, 0, 70)
-HWIDLabel.Size = UDim2.new(1, -20, 0, 20)
-HWIDLabel.Font = Enum.Font.GothamMedium
-HWIDLabel.Text = "HWID: " .. HWID:sub(1, 16) .. "..."
-HWIDLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
-HWIDLabel.TextSize = 10
-HWIDLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Key Input Box
 KeyBox.Name = "KeyBox"
@@ -126,7 +111,7 @@ GetKeyButton.Text = "GET KEY"
 GetKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 GetKeyButton.TextSize = 14
 GetKeyButton.AutoButtonColor = false
-
+local HWID = game:GetService("RbxAnalyticsService"):GetClientId()
 GetKeyCorner.Parent = GetKeyButton
 GetKeyCorner.CornerRadius = UDim.new(0, 8)
 
@@ -409,4 +394,5 @@ end)
 
 if not ScreenGui.Parent then
     ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
 end
