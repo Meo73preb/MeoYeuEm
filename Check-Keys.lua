@@ -1,6 +1,5 @@
--- Vicat Key System GUI (Standalone)
 -- This is loaded when no valid key is found
-
+-- Thanks Hoho & NoxHub
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
@@ -391,4 +390,5 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 end
+
 
