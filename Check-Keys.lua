@@ -2,19 +2,14 @@
 -- This is loaded when no valid key is found
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
-
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
-
--- Configuration
 local API_URL = "https://vicat-hub-keys.onrender.com"
 local SCRIPT_URL = API_URL .. "/script"
-
--- Create GUI
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -396,3 +391,4 @@ if not ScreenGui.Parent then
     ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 end
+
