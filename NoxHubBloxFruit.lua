@@ -4620,319 +4620,76 @@ spawn(function()
 	end);
 end);
 local env = (getgenv or getrenv or getfenv)();
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Player = Players.LocalPlayer
-local Modules = ReplicatedStorage:WaitForChild("Modules")
-local Net = Modules:WaitForChild("Net")
-local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
-local RegisterHit = Net:WaitForChild("RE/RegisterHit")
-
--- Config từ UI Settings
-local Config = {
-    FastAttack = _G.Settings.Setting["Fast Attack"] or false,
-    FastAttackDelay = _G.Settings.Setting["Fast Attack Delay"] or 0.22,
-    AttackAura = _G.Settings.Setting["Attack Aura"] or false,
-    AttackDistance = 65,
-    AttackMobs = true,
-    AttackPlayers = false,
-    ComboResetTime = 0.3,
-    MaxCombo = 4,
-    HitboxLimbs = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso"}
-}
-
--- Auto Attack Module
-local AutoAttack = {}
-AutoAttack.__index = AutoAttack
-
-function AutoAttack.new()
-    local self = setmetatable({
-        Debounce = 0,
-        ComboDebounce = 0,
-        M1Combo = 0,
-        Connections = {},
-        AttackActive = false
-    }, AutoAttack)
-    
-    return self
-end
-
--- Hàm kiểm tra entity còn sống
-function AutoAttack:IsEntityAlive(entity)
-    if not entity then return false end
-    local humanoid = entity:FindFirstChild("Humanoid")
-    return humanoid and humanoid.Health > 0
-end
-
--- Hàm lấy khoảng cách
-function AutoAttack:GetDistance(pos1, pos2)
-    return (pos1 - pos2).Magnitude
-end
-
--- Hàm lấy tất cả targets trong phạm vi
-function AutoAttack:GetAllTargets()
-    local targets = {}
-    local character = Player.Character
-    if not character then return targets end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return targets end
-    
-    local charPos = rootPart.Position
-    local maxDistance = Config.AttackDistance
-    
-    -- Lấy enemies
-    if Config.AttackMobs then
-        local enemies = workspace.Enemies:GetChildren()
-        for i = 1, #enemies do
-            local enemy = enemies[i]
-            if self:IsEntityAlive(enemy) then
-                local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
-                if enemyRoot and self:GetDistance(charPos, enemyRoot.Position) <= maxDistance then
-                    table.insert(targets, {
-                        Object = enemy,
-                        RootPart = enemyRoot,
-                        Health = enemy.Humanoid.Health,
-                        Distance = self:GetDistance(charPos, enemyRoot.Position)
-                    })
-                end
-            end
-        end
-    end
-    
-    -- Sắp xếp target theo khoảng cách gần nhất
-    table.sort(targets, function(a, b)
-        return a.Distance < b.Distance
-    end)
-    
-    return targets
-end
-
--- Hàm kiểm tra trạng thái stun/busy
-function AutoAttack:CheckStun(character)
-    local busy = character:FindFirstChild("Busy")
-    local stun = character:FindFirstChild("Stun")
-    return not ((busy and busy.Value) or (stun and stun.Value > 0))
-end
-
--- Hàm thực hiện attack chính
-function AutoAttack:PerformAttack()
-    if not Config.AttackAura then return end
-    
-    local now = tick()
-    if (now - self.Debounce) < Config.FastAttackDelay then return end
-    
-    local character = Player.Character
-    if not character or not self:IsEntityAlive(character) then return end
-    
-    -- Kiểm tra stun/busy
-    if not self:CheckStun(character) then return end
-    
-    -- Lấy targets
-    local targets = self:GetAllTargets()
-    if #targets == 0 then return end
-    
-    -- Xác định loại vũ khí đang cầm
-    local equipped = character:FindFirstChildOfClass("Tool")
-    if not equipped then return end
-    
-    local toolTip = equipped.ToolTip or "Unknown"
-    
-    -- Chỉ attack với sword/melee/fruit, bỏ gun
-    if toolTip ~= "Sword" and toolTip ~= "Melee" and toolTip ~= "Blox Fruit" then
-        return
-    end
-    
-    -- Xử lý combo
-    local combo = 0
-    if (now - self.ComboDebounce) <= Config.ComboResetTime then
-        self.M1Combo = self.M1Combo + 1
-        if self.M1Combo > Config.MaxCombo then
-            self.M1Combo = 1
-        end
-    else
-        self.M1Combo = 1
-    end
-    self.ComboDebounce = now
-    combo = self.M1Combo - 1
-    
-    -- Thực hiện attack
-    if toolTip == "Blox Fruit" then
-        self:PerformFruitAttack(targets, equipped, combo)
-    else
-        self:PerformMeleeAttack(targets, combo)
-    end
-    
-    self.Debounce = now
-end
-
--- Hàm attack melee
-function AutoAttack:PerformMeleeAttack(targets, combo)
-    if #targets == 0 then return end
-    
-    local mainTarget = targets[1]
-    local hitTable = {}
-    
-    -- Tạo bảng hit
-    for i = 2, #targets do
-        table.insert(hitTable, {
-            targets[i].Object,
-            targets[i].RootPart
-        })
-    end
-    
-    -- Fast Attack: fire multiple combos quickly
-    if Config.FastAttack then
-        for i = 0, 3 do
-            RegisterAttack:FireServer(i)
-            task.wait(0.01)
-        end
-    else
-        RegisterAttack:FireServer(combo)
-    end
-    
-    -- Fire hit event
-    if mainTarget and mainTarget.RootPart then
-        RegisterHit:FireServer(mainTarget.RootPart, hitTable)
-    end
-end
-
--- Hàm attack fruit
-function AutoAttack:PerformFruitAttack(targets, equipped, combo)
-    if #targets == 0 then return end
-    
-    local target = targets[1]
-    if not target then return end
-    
-    local leftClickRemote = equipped:FindFirstChild("LeftClickRemote")
-    if leftClickRemote then
-        local direction = (target.RootPart.Position - Player.Character.HumanoidRootPart.Position).Unit
-        leftClickRemote:FireServer(direction, combo)
-    end
-end
-
--- Hàm khởi tạo và chạy system
-function AutoAttack:Start()
-    -- Kết nối với RenderStepped
-    if self.Connection then
-        self.Connection:Disconnect()
-    end
-    
-    self.Connection = RunService.RenderStepped:Connect(function()
-        self:PerformAttack()
-    end)
-    
-    self.AttackActive = true
-end
-
--- Hàm dừng system
-function AutoAttack:Stop()
-    if self.Connection then
-        self.Connection:Disconnect()
-        self.Connection = nil
-    end
-    self.AttackActive = false
-end
-
--- Hàm cập nhật config từ settings
-function AutoAttack:UpdateConfig()
-    Config.FastAttack = _G.Settings.Setting["Fast Attack"]
-    Config.FastAttackDelay = _G.Settings.Setting["Fast Attack Delay"] or 0.22
-    Config.AttackAura = _G.Settings.Setting["Attack Aura"]
-    
-    -- Tự động bật/tắt system dựa trên Attack Aura
-    if Config.AttackAura and not self.AttackActive then
-        self:Start()
-    elseif not Config.AttackAura and self.AttackActive then
-        self:Stop()
-    end
-end
-
--- Khởi tạo system
-local AttackSystem = AutoAttack.new()
-
--- Cập nhật cấu hình khi settings thay đổi
-spawn(function()
-    while task.wait(0.5) do
-        AttackSystem:UpdateConfig()
-    end
-end)
-
--- UI Settings Integration
-SettingsTab:Toggle("Fast Attack", _G.Settings.Setting["Fast Attack"], "Fast Attack", function(value)
-    _G.Settings.Setting["Fast Attack"] = value
-    Config.FastAttack = value
-    (getgenv()).SaveSetting()
-end)
-
-local AttackList = {
-    "Slow",
-    "Normal", 
-    "Fast",
-    "Super Fast"
-}
-
--- Spawn function để cập nhật delay
-spawn(function()
-    while task.wait() do
-        if _G.Settings.Setting["Fast Attack Mode"] == "Slow" then
-            _G.Settings.Setting["Fast Attack Delay"] = 0.32
-        elseif _G.Settings.Setting["Fast Attack Mode"] == "Normal" then
-            _G.Settings.Setting["Fast Attack Delay"] = 0.22
-        elseif _G.Settings.Setting["Fast Attack Mode"] == "Fast" then
-            _G.Settings.Setting["Fast Attack Delay"] = 0.17
-        elseif _G.Settings.Setting["Fast Attack Mode"] == "Super Fast" then
-            _G.Settings.Setting["Fast Attack Delay"] = 0.12
-        end
-        
-        -- Cập nhật config
-        Config.FastAttackDelay = _G.Settings.Setting["Fast Attack Delay"] or 0.22
-    end
-end)
-
-SettingsTab:Dropdown("Fast Attack Mode", AttackList, _G.Settings.Setting["Fast Attack Mode"], function(value)
-    _G.Settings.Setting["Fast Attack Mode"] = value
-    (getgenv()).SaveSetting()
-    
-    -- Cập nhật delay ngay lập tức
-    if value == "Slow" then
-        _G.Settings.Setting["Fast Attack Delay"] = 0.32
-    elseif value == "Normal" then
-        _G.Settings.Setting["Fast Attack Delay"] = 0.22
-    elseif value == "Fast" then
-        _G.Settings.Setting["Fast Attack Delay"] = 0.17
-    elseif value == "Super Fast" then
-        _G.Settings.Setting["Fast Attack Delay"] = 0.12
-    end
-    
-    Config.FastAttackDelay = _G.Settings.Setting["Fast Attack Delay"]
-end)
-
-SettingsTab:Toggle("Attack Aura", _G.Settings.Setting["Attack Aura"], "Attack Mob", function(value)
-    _G.Settings.Setting["Attack Aura"] = value
-    Config.AttackAura = value
-    (getgenv()).SaveSetting()
-    
-    -- Tự động bật/tắt attack system
-    if value then
-        AttackSystem:Start()
-    else
-        AttackSystem:Stop()
-    end
-end)
-
--- Khởi động system nếu Attack Aura đang bật
-if _G.Settings.Setting["Attack Aura"] then
-    AttackSystem:Start()
-end
-
--- Return module để có thể control từ bên ngoài
-return {
-    System = AttackSystem,
-    Config = Config,
-    UpdateConfig = function() AttackSystem:UpdateConfig() end
-}
+local rs = game:GetService("ReplicatedStorage");
+local players = game:GetService("Players");
+local client = players.LocalPlayer;
+local modules = rs:WaitForChild("Modules");
+local net = modules:WaitForChild("Net");
+local charFolder = workspace:WaitForChild("Characters");
+local enemyFolder = workspace:WaitForChild("Enemies");
+local playerFolder = game:GetService("Players");
+function getAllBladeHits(Sizes)
+	local Hits = {};
+	local Client = game.Players.LocalPlayer;
+	local Players = (game:GetService("Players")):GetChildren();
+	local Enemies = (game:GetService("Workspace")).Enemies:GetChildren();
+	for i = 1, #Enemies do
+		local v = Enemies[i];
+		local Human = v:FindFirstChildOfClass("Humanoid");
+		if Human and Human.RootPart and Human.Health > 0 and Client:DistanceFromCharacter(Human.RootPart.Position) < Sizes + 5 then
+			table.insert(Hits, Human.RootPart);
+		end;
+	end;
+	for i = 1, #Players do
+		local v = Players[i];
+		local Human = v.Character:FindFirstChildOfClass("Humanoid");
+		if Human and Human.RootPart and Human.Health > 0 and Client:DistanceFromCharacter(Human.RootPart.Position) < Sizes + 5 then
+			table.insert(Hits, Human.RootPart);
+		end;
+	end;
+	return Hits;
+end;
+local AttackModule = {};
+local RegisterAttack = net:WaitForChild("RE/RegisterAttack");
+local RegisterHit = net:WaitForChild("RE/RegisterHit");
+function AttackModule:AttackEnemy(EnemyHead, Table)
+	if EnemyHead then
+		RegisterAttack:FireServer(0);
+		RegisterAttack:FireServer(1);
+		RegisterAttack:FireServer(2);
+		RegisterAttack:FireServer(3);
+		RegisterHit:FireServer(EnemyHead, Table or {});
+	end;
+end;
+function AttackModule:AttackNearest()
+	local args = {
+		nil,
+		{}
+	};
+	for _, Enemy in enemyFolder:GetChildren() do
+		if not args[1] and Enemy:FindFirstChild("HumanoidRootPart", true) and client:DistanceFromCharacter(Enemy.HumanoidRootPart.Position) < 60 then
+			args[1] = Enemy:FindFirstChild("HumanoidRootPart");
+		elseif Enemy:FindFirstChild("HumanoidRootPart", true) and client:DistanceFromCharacter(Enemy.HumanoidRootPart.Position) < 60 then
+			table.insert(args[2], {
+				[1] = Enemy,
+				[2] = Enemy:FindFirstChild("HumanoidRootPart")
+			});
+		end;
+	end;
+	self:AttackEnemy(unpack(args));
+end;
+function AttackModule:BladeHits()
+	self:AttackNearest();
+end;
+function Attack()
+	if not _G.Settings.Main["Auto Farm Fruit Mastery"] or (not _G.Settings.Main["Auto Farm Gun Mastery"]) then
+		if _G.Settings.Setting["Fast Attack"] then
+			AttackModule:BladeHits();
+		else
+			AttackModule:BladeHits();
+		end;
+	end;
+end;
 SettingsTab:Seperator("Graphic");
 SettingsTab:Toggle("Hide Notifications", _G.Settings.Setting["Hide Notification"], "Invisible Notification", function(value)
 	_G.Settings.Setting["Hide Notification"] = value;
