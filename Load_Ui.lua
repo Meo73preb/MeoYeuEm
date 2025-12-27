@@ -445,12 +445,14 @@ function Update:Window(config)
 	page.BackgroundTransparency = 1
 	page.Position = UDim2.new(0, tab.Size.X.Offset + 18, 0, top.Size.Y.Offset)
 	page.Size = UDim2.new(0, windowConfig.Size.X.Offset - tab.Size.X.Offset - 25, 0, windowConfig.Size.Y.Offset - top.Size.Y.Offset - 8)
+	page.ClipsDescendants = true
 	CreateRounded(page, 3)
 	
 	local mainPage = Instance.new("Frame")
 	mainPage.Parent = page
 	mainPage.BackgroundTransparency = 1
 	mainPage.Size = UDim2.new(1, 0, 1, 0)
+	mainPage.ClipsDescendants = true
 	
 	local pageList = Instance.new("Folder")
 	pageList.Name = "PageList"
@@ -460,7 +462,8 @@ function Update:Window(config)
 	uiPageLayout.Parent = pageList
 	uiPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	uiPageLayout.EasingStyle = Enum.EasingStyle.Quad
-	uiPageLayout.TweenTime = 0
+	uiPageLayout.TweenTime = 0.3
+	uiPageLayout.Animated = true
 	
 	-- Auto-resize canvas
 	RunService.Stepped:Connect(function()
@@ -522,6 +525,9 @@ function Update:Window(config)
 		mainFramePage.BackgroundTransparency = 1
 		mainFramePage.Size = UDim2.new(1, 0, 1, 0)
 		mainFramePage.ScrollBarThickness = 0
+		mainFramePage.BorderSizePixel = 0
+		mainFramePage.Visible = false
+		mainFramePage.ClipsDescendants = true
 		
 		local uiListLayout = Instance.new("UIListLayout")
 		uiListLayout.Parent = mainFramePage
@@ -542,6 +548,16 @@ function Update:Window(config)
 				end
 			end
 			
+			-- Ẩn tất cả các page
+			for _, v in pairs(pageList:GetChildren()) do
+				if v:IsA("ScrollingFrame") then
+					v.Visible = false
+				end
+			end
+			
+			-- Hiển thị page được chọn
+			mainFramePage.Visible = true
+			
 			TweenService:Create(tabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0.8}):Play()
 			TweenService:Create(selectedTab, TweenInfo.new(0.3), {Size = UDim2.new(0, 3, 0, 15)}):Play()
 			TweenService:Create(icon, TweenInfo.new(0.3), {ImageTransparency = 0}):Play()
@@ -552,6 +568,9 @@ function Update:Window(config)
 		
 		-- Select first tab by default
 		if not abc then
+			-- Hiển thị tab đầu tiên
+			mainFramePage.Visible = true
+			
 			TweenService:Create(tabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0.8}):Play()
 			TweenService:Create(selectedTab, TweenInfo.new(0.3), {Size = UDim2.new(0, 3, 0, 15)}):Play()
 			TweenService:Create(icon, TweenInfo.new(0.3), {ImageTransparency = 0}):Play()
