@@ -199,7 +199,7 @@ function Update:StartLoad()
 	
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Parent = loaderFrame
-	mainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+	mainFrame.BackgroundTransparency = 1
 	mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 	mainFrame.Size = UDim2.new(0.5, 0, 0.5, 0)
@@ -233,12 +233,14 @@ function Update:StartLoad()
 	loadingBarBg.Position = UDim2.new(0.5, 0, 0.7, 0)
 	loadingBarBg.Size = UDim2.new(0.7, 0, 0.05, 0)
 	loadingBarBg.ClipsDescendants = true
+	loadingBarBg.BorderSizePixel = 0
 	CreateRounded(loadingBarBg, 20)
 	
 	local loadingBar = Instance.new("Frame")
 	loadingBar.Parent = loadingBarBg
 	loadingBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	loadingBar.Size = UDim2.new(0, 0, 1, 0)
+	loadingBar.BorderSizePixel = 0
 	CreateRounded(loadingBar, 20)
 	
 	local running = true
@@ -377,6 +379,7 @@ function Update:Window(config)
 	nameHub.TextSize = 20
 	nameHub.TextColor3 = Color3.fromRGB(255, 255, 255)
 	nameHub.TextXAlignment = Enum.TextXAlignment.Left
+	nameHub.ZIndex = 5
 	
 	local nameSize = game:GetService("TextService"):GetTextSize(
 		nameHub.Text, nameHub.TextSize, nameHub.Font, 
@@ -393,6 +396,7 @@ function Update:Window(config)
 	subTitle.Text = config.SubTitle
 	subTitle.TextSize = 15
 	subTitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+	subTitle.ZIndex = 5
 	
 	-- Close Button
 	local closeButton = Instance.new("ImageButton")
