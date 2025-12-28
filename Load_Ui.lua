@@ -380,6 +380,7 @@ function Update:Window(config)
 	nameHub.TextColor3 = Color3.fromRGB(255, 255, 255)
 	nameHub.TextXAlignment = Enum.TextXAlignment.Left
 	nameHub.ZIndex = 5
+	nameHub.Size = UDim2.new(0, 0, 0, 25)
 	
 	local nameSize = game:GetService("TextService"):GetTextSize(
 		nameHub.Text, nameHub.TextSize, nameHub.Font, 
@@ -388,15 +389,22 @@ function Update:Window(config)
 	nameHub.Size = UDim2.new(0, nameSize.X, 0, 25)
 	
 	local subTitle = Instance.new("TextLabel")
-	subTitle.Parent = nameHub
+	subTitle.Parent = top
 	subTitle.BackgroundTransparency = 1
-	subTitle.Position = UDim2.new(0, nameSize.X + 8, 0.5, 0)
+	subTitle.Position = UDim2.new(0, 15 + nameSize.X + 8, 0.5, 0)
 	subTitle.AnchorPoint = Vector2.new(0, 0.5)
 	subTitle.Font = Enum.Font.Cartoon
 	subTitle.Text = config.SubTitle
 	subTitle.TextSize = 15
 	subTitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 	subTitle.ZIndex = 5
+	subTitle.Size = UDim2.new(0, 0, 0, 25)
+	
+	local subTitleSize = game:GetService("TextService"):GetTextSize(
+		subTitle.Text, subTitle.TextSize, subTitle.Font, 
+		Vector2.new(math.huge, math.huge)
+	)
+	subTitle.Size = UDim2.new(0, subTitleSize.X, 0, 25)
 	
 	-- Close Button
 	local closeButton = Instance.new("ImageButton")
