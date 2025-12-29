@@ -1,5 +1,4 @@
 -- Vicat Hub - Optimized Version
--- Kiểm tra và xóa UI cũ
 local coreGui = game:GetService("CoreGui")
 if coreGui:FindFirstChild("VicatHub") then coreGui.VicatHub:Destroy() end
 if coreGui:FindFirstChild("ScreenGui") then coreGui.ScreenGui:Destroy() end
@@ -187,7 +186,7 @@ function Update:StartLoad()
 	local loader = Instance.new("ScreenGui")
 	loader.Parent = coreGui
 	loader.ZIndexBehavior = Enum.ZIndexBehavior.Global
-	loader.DisplayOrder = 100
+	loader.DisplayOrder = 1000
 	
 	local loaderFrame = Instance.new("Frame")
 	loaderFrame.Parent = loader
@@ -300,7 +299,7 @@ getgenv().LoadConfig = function()
 				SettingsLib[i] = v
 			end
 		end
-		print("Vicat Hub Ui Loaded!")
+		print("Vicat Hub Config Loaded!")
 	else
 		warn("Executor không hỗ trợ file system")
 	end
@@ -406,6 +405,36 @@ function Update:Window(config)
 	)
 	subTitle.Size = UDim2.new(0, subTitleSize.X, 0, 25)
 	
+	-- Settings Button
+	local settingsButton = Instance.new("ImageButton")
+	settingsButton.Name = "SettingsButton"
+	settingsButton.Parent = top
+	settingsButton.BackgroundTransparency = 1
+	settingsButton.AnchorPoint = Vector2.new(1, 0.5)
+	settingsButton.Position = UDim2.new(1, -85, 0.5, 0)
+	settingsButton.Size = UDim2.new(0, 20, 0, 20)
+	settingsButton.Image = "rbxassetid://10734950020"
+	settingsButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	settingsButton.ZIndex = 5
+	CreateRounded(settingsButton, 3)
+	
+	settingsButton.MouseButton1Click:Connect(function()
+		backgroundSettings.Visible = true
+	end)
+	
+	-- Resize Button
+	local resizeButton = Instance.new("ImageButton")
+	resizeButton.Name = "ResizeButton"
+	resizeButton.Parent = top
+	resizeButton.BackgroundTransparency = 1
+	resizeButton.AnchorPoint = Vector2.new(1, 0.5)
+	resizeButton.Position = UDim2.new(1, -50, 0.5, 0)
+	resizeButton.Size = UDim2.new(0, 20, 0, 20)
+	resizeButton.Image = "rbxassetid://10734886735"
+	resizeButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	resizeButton.ZIndex = 5
+	CreateRounded(resizeButton, 3)
+	
 	-- Close Button
 	local closeButton = Instance.new("ImageButton")
 	closeButton.Parent = top
@@ -415,10 +444,186 @@ function Update:Window(config)
 	closeButton.Size = UDim2.new(0, 20, 0, 20)
 	closeButton.Image = "rbxassetid://7743878857"
 	closeButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	closeButton.ZIndex = 5
 	CreateRounded(closeButton, 3)
 	
 	closeButton.MouseButton1Click:Connect(function()
 		vicatHub.Enabled = not vicatHub.Enabled
+	end)
+	
+	-- Background Settings Frame
+	local backgroundSettings = Instance.new("Frame")
+	backgroundSettings.Name = "BackgroundSettings"
+	backgroundSettings.Parent = outlineMain
+	backgroundSettings.Active = true
+	backgroundSettings.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	backgroundSettings.BackgroundTransparency = 0.3
+	backgroundSettings.Size = UDim2.new(1, 0, 1, 0)
+	backgroundSettings.Visible = false
+	backgroundSettings.ZIndex = 10
+	CreateRounded(backgroundSettings, 15)
+	
+	local settingsFrame = Instance.new("Frame")
+	settingsFrame.Name = "SettingsFrame"
+	settingsFrame.Parent = backgroundSettings
+	settingsFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
+	settingsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	settingsFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	settingsFrame.Size = UDim2.new(0.7, 0, 0.7, 0)
+	settingsFrame.ZIndex = 11
+	CreateRounded(settingsFrame, 15)
+	
+	local closeSettings = Instance.new("ImageButton")
+	closeSettings.Name = "CloseSettings"
+	closeSettings.Parent = settingsFrame
+	closeSettings.BackgroundTransparency = 1
+	closeSettings.AnchorPoint = Vector2.new(1, 0)
+	closeSettings.Position = UDim2.new(1, -20, 0, 15)
+	closeSettings.Size = UDim2.new(0, 20, 0, 20)
+	closeSettings.Image = "rbxassetid://10747384394"
+	closeSettings.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	closeSettings.ZIndex = 12
+	CreateRounded(closeSettings, 3)
+	
+	closeSettings.MouseButton1Click:Connect(function()
+		backgroundSettings.Visible = false
+	end)
+	
+	local titleSettings = Instance.new("TextLabel")
+	titleSettings.Name = "TitleSettings"
+	titleSettings.Parent = settingsFrame
+	titleSettings.BackgroundTransparency = 1
+	titleSettings.Position = UDim2.new(0, 20, 0, 15)
+	titleSettings.Size = UDim2.new(1, 0, 0, 20)
+	titleSettings.Font = Enum.Font.GothamBold
+	titleSettings.Text = "Library Settings"
+	titleSettings.TextSize = 20
+	titleSettings.TextColor3 = Color3.fromRGB(245, 245, 245)
+	titleSettings.TextXAlignment = Enum.TextXAlignment.Left
+	titleSettings.ZIndex = 12
+	
+	local settingsMenuList = Instance.new("Frame")
+	settingsMenuList.Name = "SettingsMenuList"
+	settingsMenuList.Parent = settingsFrame
+	settingsMenuList.BackgroundTransparency = 1
+	settingsMenuList.Position = UDim2.new(0, 0, 0, 50)
+	settingsMenuList.Size = UDim2.new(1, 0, 1, -70)
+	settingsMenuList.ZIndex = 11
+	CreateRounded(settingsMenuList, 15)
+	
+	local scrollSettings = Instance.new("ScrollingFrame")
+	scrollSettings.Name = "ScrollSettings"
+	scrollSettings.Parent = settingsMenuList
+	scrollSettings.BackgroundTransparency = 1
+	scrollSettings.Size = UDim2.new(1, 0, 1, 0)
+	scrollSettings.ScrollBarThickness = 3
+	scrollSettings.ZIndex = 11
+	
+	local settingsListLayout = Instance.new("UIListLayout")
+	settingsListLayout.Parent = scrollSettings
+	settingsListLayout.Padding = UDim.new(0, 8)
+	
+	local paddingScroll = Instance.new("UIPadding")
+	paddingScroll.Parent = scrollSettings
+	paddingScroll.PaddingLeft = UDim.new(0, 20)
+	paddingScroll.PaddingRight = UDim.new(0, 20)
+	
+	-- Settings Functions
+	local function CreateCheckbox(title, state, callback)
+		local checked = state or false
+		
+		local background = Instance.new("Frame")
+		background.Name = "Background"
+		background.Parent = scrollSettings
+		background.BackgroundTransparency = 1
+		background.Size = UDim2.new(1, 0, 0, 20)
+		background.ZIndex = 11
+		
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.Parent = background
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Position = UDim2.new(0, 60, 0.5, 0)
+		titleLabel.AnchorPoint = Vector2.new(0, 0.5)
+		titleLabel.Size = UDim2.new(1, -60, 0, 20)
+		titleLabel.Font = Enum.Font.Code
+		titleLabel.Text = title or ""
+		titleLabel.TextSize = 15
+		titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		titleLabel.ZIndex = 12
+		
+		local checkbox = Instance.new("ImageButton")
+		checkbox.Parent = background
+		checkbox.BackgroundColor3 = checked and _G.Third or Color3.fromRGB(100, 100, 100)
+		checkbox.AnchorPoint = Vector2.new(0, 0.5)
+		checkbox.Position = UDim2.new(0, 30, 0.5, 0)
+		checkbox.Size = UDim2.new(0, 20, 0, 20)
+		checkbox.Image = "rbxassetid://10709790644"
+		checkbox.ImageTransparency = checked and 0 or 1
+		checkbox.ImageColor3 = Color3.fromRGB(245, 245, 245)
+		checkbox.ZIndex = 12
+		CreateRounded(checkbox, 5)
+		
+		checkbox.MouseButton1Click:Connect(function()
+			checked = not checked
+			checkbox.BackgroundColor3 = checked and _G.Third or Color3.fromRGB(100, 100, 100)
+			checkbox.ImageTransparency = checked and 0 or 1
+			pcall(callback, checked)
+		end)
+		
+		pcall(callback, checked)
+	end
+	
+	local function CreateButton(title, callback)
+		local background = Instance.new("Frame")
+		background.Name = "Background"
+		background.Parent = scrollSettings
+		background.BackgroundTransparency = 1
+		background.Size = UDim2.new(1, 0, 0, 30)
+		background.ZIndex = 11
+		
+		local button = Instance.new("TextButton")
+		button.Parent = background
+		button.BackgroundColor3 = _G.Third
+		button.Size = UDim2.new(0.8, 0, 0, 30)
+		button.Font = Enum.Font.Code
+		button.Text = title or "Button"
+		button.AnchorPoint = Vector2.new(0.5, 0)
+		button.Position = UDim2.new(0.5, 0, 0, 0)
+		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		button.TextSize = 15
+		button.AutoButtonColor = false
+		button.ZIndex = 12
+		CreateRounded(button, 5)
+		
+		button.MouseButton1Click:Connect(function()
+			callback()
+		end)
+	end
+	
+	-- Add settings options
+	CreateCheckbox("Save Settings", SettingsLib.SaveSettings, function(state)
+		SettingsLib.SaveSettings = state
+		getgenv().SaveConfig()
+	end)
+	
+	CreateCheckbox("Loading Animation", SettingsLib.LoadAnimation, function(state)
+		SettingsLib.LoadAnimation = state
+		getgenv().SaveConfig()
+	end)
+	
+	CreateButton("Reset Config", function()
+		if isfolder("Vicat Hub") then
+			delfolder("Vicat Hub")
+		end
+		Update:Notify("Config has been reset!")
+	end)
+	
+	-- Auto-resize settings canvas
+	RunService.Stepped:Connect(function()
+		pcall(function()
+			scrollSettings.CanvasSize = UDim2.new(0, 0, 0, settingsListLayout.AbsoluteContentSize.Y)
+		end)
 	end)
 	
 	MakeDraggable(top, outlineMain)
@@ -980,24 +1185,27 @@ function Update:Window(config)
 			title.Parent = sliderr
 			title.BackgroundTransparency = 1
 			title.Position = UDim2.new(0, 15, 0, 8)
-			title.Size = UDim2.new(1, -30, 0, 20)
+			title.Size = UDim2.new(1, -100, 0, 20)
 			title.Font = Enum.Font.Cartoon
 			title.Text = text
 			title.TextColor3 = Color3.fromRGB(255, 255, 255)
 			title.TextSize = 15
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			
-			local valueText = Instance.new("TextLabel")
-			valueText.Parent = sliderr
-			valueText.BackgroundTransparency = 1
-			valueText.Position = UDim2.new(1, -15, 0, 8)
-			valueText.AnchorPoint = Vector2.new(1, 0)
-			valueText.Size = UDim2.new(0, 50, 0, 20)
-			valueText.Font = Enum.Font.GothamBold
-			valueText.Text = tostring(set)
-			valueText.TextColor3 = Color3.fromRGB(255, 255, 255)
-			valueText.TextSize = 14
-			valueText.TextXAlignment = Enum.TextXAlignment.Right
+			-- TextBox để nhập số
+			local valueBox = Instance.new("TextBox")
+			valueBox.Parent = sliderr
+			valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+			valueBox.BackgroundTransparency = 0
+			valueBox.Position = UDim2.new(1, -65, 0, 5)
+			valueBox.AnchorPoint = Vector2.new(0, 0)
+			valueBox.Size = UDim2.new(0, 55, 0, 22)
+			valueBox.Font = Enum.Font.GothamBold
+			valueBox.Text = tostring(set)
+			valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+			valueBox.TextSize = 13
+			valueBox.ClearTextOnFocus = false
+			CreateRounded(valueBox, 4)
 			
 			local barContainer = Instance.new("Frame")
 			barContainer.Parent = sliderr
@@ -1028,6 +1236,25 @@ function Update:Window(config)
 			circlebar.Size = UDim2.new(0, 15, 0, 15)
 			CreateRounded(circlebar, 100)
 			
+			local function updateValue(newValue)
+				newValue = math.clamp(tonumber(newValue) or min, min, max)
+				value = newValue
+				valueBox.Text = tostring(value)
+				local percentage = (value - min) / (max - min)
+				bar1.Size = UDim2.new(percentage, 0, 1, 0)
+				pcall(callback, value)
+			end
+			
+			-- TextBox input
+			valueBox.FocusLost:Connect(function(enterPressed)
+				local inputValue = tonumber(valueBox.Text)
+				if inputValue then
+					updateValue(inputValue)
+				else
+					valueBox.Text = tostring(value)
+				end
+			end)
+			
 			local dragging = false
 			
 			circlebar.InputBegan:Connect(function(input)
@@ -1055,11 +1282,8 @@ function Update:Window(config)
 				if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
 				   input.UserInputType == Enum.UserInputType.Touch) then
 					local percentage = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-					value = math.floor(min + (max - min) * percentage)
-					
-					pcall(callback, value)
-					valueText.Text = tostring(value)
-					bar1.Size = UDim2.new(percentage, 0, 1, 0)
+					local newValue = math.floor(min + (max - min) * percentage)
+					updateValue(newValue)
 				end
 			end)
 		end
