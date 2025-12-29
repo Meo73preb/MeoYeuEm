@@ -187,7 +187,7 @@ function Update:StartLoad()
 	local loader = Instance.new("ScreenGui")
 	loader.Parent = coreGui
 	loader.ZIndexBehavior = Enum.ZIndexBehavior.Global
-	loader.DisplayOrder = 1000
+	loader.DisplayOrder = 100
 	
 	local loaderFrame = Instance.new("Frame")
 	loaderFrame.Parent = loader
@@ -288,10 +288,10 @@ local SettingsLib = {
 
 getgenv().LoadConfig = function()
 	if readfile and writefile and isfile and isfolder then
-		if not isfolder("VicatHub") then makefolder("VicatHub") end
-		if not isfolder("VicatHub/Library/") then makefolder("VicatHub/Library/") end
+		if not isfolder("Vicat Hub") then makefolder("Vicat Hub") end
+		if not isfolder("Vicat Hub/Library/") then makefolder("Vicat Hub/Library/") end
 		
-		local configPath = "VicatHub/Library/" .. Players.LocalPlayer.Name .. ".json"
+		local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
 		if not isfile(configPath) then
 			writefile(configPath, HttpService:JSONEncode(SettingsLib))
 		else
@@ -300,7 +300,7 @@ getgenv().LoadConfig = function()
 				SettingsLib[i] = v
 			end
 		end
-		print("Vicat Hub Config Loaded!")
+		print("Vicat Hub Ui Loaded!")
 	else
 		warn("Executor không hỗ trợ file system")
 	end
@@ -308,7 +308,7 @@ end
 
 getgenv().SaveConfig = function()
 	if writefile and isfile and isfolder then
-		local configPath = "VicatHub/Library/" .. Players.LocalPlayer.Name .. ".json"
+		local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
 		writefile(configPath, HttpService:JSONEncode(SettingsLib))
 	end
 end
@@ -967,61 +967,66 @@ function Update:Window(config)
 			slider.Name = "Slider"
 			slider.Parent = mainFramePage
 			slider.BackgroundTransparency = 1
-			slider.Size = UDim2.new(1, 0, 0, 35)
+			slider.Size = UDim2.new(1, 0, 0, 50)
 			
 			local sliderr = Instance.new("Frame")
 			sliderr.Parent = slider
 			sliderr.BackgroundColor3 = _G.Primary
 			sliderr.BackgroundTransparency = 0.8
-			sliderr.Size = UDim2.new(1, 0, 0, 35)
+			sliderr.Size = UDim2.new(1, 0, 1, 0)
 			CreateRounded(sliderr, 5)
 			
 			local title = Instance.new("TextLabel")
 			title.Parent = sliderr
 			title.BackgroundTransparency = 1
-			title.Position = UDim2.new(0, 15, 0.5, 0)
-			title.AnchorPoint = Vector2.new(0, 0.5)
-			title.Size = UDim2.new(1, 0, 0, 30)
+			title.Position = UDim2.new(0, 15, 0, 8)
+			title.Size = UDim2.new(1, -30, 0, 20)
 			title.Font = Enum.Font.Cartoon
 			title.Text = text
 			title.TextColor3 = Color3.fromRGB(255, 255, 255)
 			title.TextSize = 15
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			
+			local valueText = Instance.new("TextLabel")
+			valueText.Parent = sliderr
+			valueText.BackgroundTransparency = 1
+			valueText.Position = UDim2.new(1, -15, 0, 8)
+			valueText.AnchorPoint = Vector2.new(1, 0)
+			valueText.Size = UDim2.new(0, 50, 0, 20)
+			valueText.Font = Enum.Font.GothamBold
+			valueText.Text = tostring(set)
+			valueText.TextColor3 = Color3.fromRGB(255, 255, 255)
+			valueText.TextSize = 14
+			valueText.TextXAlignment = Enum.TextXAlignment.Right
+			
+			local barContainer = Instance.new("Frame")
+			barContainer.Parent = sliderr
+			barContainer.BackgroundTransparency = 1
+			barContainer.Position = UDim2.new(0, 15, 1, -20)
+			barContainer.Size = UDim2.new(1, -30, 0, 15)
+			
 			local bar = Instance.new("Frame")
-			bar.Parent = sliderr
+			bar.Parent = barContainer
 			bar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
 			bar.BackgroundTransparency = 0.8
-			bar.Position = UDim2.new(1, -10, 0.5, 0)
-			bar.AnchorPoint = Vector2.new(1, 0.5)
-			bar.Size = UDim2.new(0, 100, 0, 4)
+			bar.Position = UDim2.new(0, 0, 0.5, 0)
+			bar.AnchorPoint = Vector2.new(0, 0.5)
+			bar.Size = UDim2.new(1, 0, 0, 4)
 			CreateRounded(bar, 5)
 			
 			local bar1 = Instance.new("Frame")
 			bar1.Parent = bar
 			bar1.BackgroundColor3 = _G.Third
-			bar1.Size = UDim2.new((set - min) / (max - min), 0, 0, 4)
+			bar1.Size = UDim2.new((set - min) / (max - min), 0, 1, 0)
 			CreateRounded(bar1, 5)
 			
 			local circlebar = Instance.new("Frame")
 			circlebar.Parent = bar1
 			circlebar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-			circlebar.Position = UDim2.new(1, 0, 0, -5)
-			circlebar.AnchorPoint = Vector2.new(0.5, 0)
-			circlebar.Size = UDim2.new(0, 13, 0, 13)
+			circlebar.Position = UDim2.new(1, 0, 0.5, 0)
+			circlebar.AnchorPoint = Vector2.new(0.5, 0.5)
+			circlebar.Size = UDim2.new(0, 15, 0, 15)
 			CreateRounded(circlebar, 100)
-			
-			local valueText = Instance.new("TextLabel")
-			valueText.Parent = bar
-			valueText.BackgroundTransparency = 1
-			valueText.Position = UDim2.new(0, -38, 0.5, 0)
-			valueText.AnchorPoint = Vector2.new(0, 0.5)
-			valueText.Size = UDim2.new(0, 30, 0, 30)
-			valueText.Font = Enum.Font.GothamMedium
-			valueText.Text = tostring(set)
-			valueText.TextColor3 = Color3.fromRGB(255, 255, 255)
-			valueText.TextSize = 12
-			valueText.TextXAlignment = Enum.TextXAlignment.Right
 			
 			local dragging = false
 			
@@ -1049,13 +1054,12 @@ function Update:Window(config)
 			UserInputService.InputChanged:Connect(function(input)
 				if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
 				   input.UserInputType == Enum.UserInputType.Touch) then
-					local sizeX = math.clamp(input.Position.X - bar1.AbsolutePosition.X, 0, 100)
-					value = math.floor(((max - min) / 100) * sizeX + min)
+					local percentage = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+					value = math.floor(min + (max - min) * percentage)
 					
 					pcall(callback, value)
 					valueText.Text = tostring(value)
-					bar1.Size = UDim2.new(0, sizeX, 0, 4)
-					circlebar.Position = UDim2.new(0, sizeX, 0, -5)
+					bar1.Size = UDim2.new(percentage, 0, 1, 0)
 				end
 			end)
 		end
