@@ -1,4 +1,4 @@
--- Vicat Hub - Optimized Version
+-- Vicat Hub - Optimized Version 12.0
 local coreGui = game:GetService("CoreGui")
 if coreGui:FindFirstChild("VicatHub") then coreGui.VicatHub:Destroy() end
 if coreGui:FindFirstChild("ScreenGui") then coreGui.ScreenGui:Destroy() end
@@ -282,7 +282,8 @@ end
 -- Hệ thống lưu cấu hình
 local SettingsLib = {
 	SaveSettings = true,
-	LoadAnimation = true
+	LoadAnimation = true,
+	PageAnimation = true
 }
 
 getgenv().LoadConfig = function()
@@ -320,6 +321,10 @@ end
 
 function Update:LoadAnimation()
 	return SettingsLib.LoadAnimation
+end
+
+function Update:PageAnimation()
+	return SettingsLib.PageAnimation
 end
 
 -- Hàm tạo Window
@@ -405,36 +410,6 @@ function Update:Window(config)
 	)
 	subTitle.Size = UDim2.new(0, subTitleSize.X, 0, 25)
 	
-	-- Settings Button
-	local settingsButton = Instance.new("ImageButton")
-	settingsButton.Name = "SettingsButton"
-	settingsButton.Parent = top
-	settingsButton.BackgroundTransparency = 1
-	settingsButton.AnchorPoint = Vector2.new(1, 0.5)
-	settingsButton.Position = UDim2.new(1, -85, 0.5, 0)
-	settingsButton.Size = UDim2.new(0, 20, 0, 20)
-	settingsButton.Image = "rbxassetid://10734950020"
-	settingsButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
-	settingsButton.ZIndex = 5
-	CreateRounded(settingsButton, 3)
-	
-	settingsButton.MouseButton1Click:Connect(function()
-		backgroundSettings.Visible = true
-	end)
-	
-	-- Resize Button
-	local resizeButton = Instance.new("ImageButton")
-	resizeButton.Name = "ResizeButton"
-	resizeButton.Parent = top
-	resizeButton.BackgroundTransparency = 1
-	resizeButton.AnchorPoint = Vector2.new(1, 0.5)
-	resizeButton.Position = UDim2.new(1, -50, 0.5, 0)
-	resizeButton.Size = UDim2.new(0, 20, 0, 20)
-	resizeButton.Image = "rbxassetid://10734886735"
-	resizeButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
-	resizeButton.ZIndex = 5
-	CreateRounded(resizeButton, 3)
-	
 	-- Close Button
 	local closeButton = Instance.new("ImageButton")
 	closeButton.Parent = top
@@ -450,6 +425,34 @@ function Update:Window(config)
 	closeButton.MouseButton1Click:Connect(function()
 		vicatHub.Enabled = not vicatHub.Enabled
 	end)
+	
+	-- Resize Button
+	local resizeButton = Instance.new("ImageButton")
+	resizeButton.Name = "ResizeButton"
+	resizeButton.Parent = top
+	resizeButton.BackgroundTransparency = 1
+	resizeButton.AnchorPoint = Vector2.new(1, 0.5)
+	resizeButton.Position = UDim2.new(1, -50, 0.5, 0)
+	resizeButton.Size = UDim2.new(0, 20, 0, 20)
+	resizeButton.Image = "rbxassetid://10734886735"
+	resizeButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	resizeButton.ZIndex = 5
+	resizeButton.Active = true
+	CreateRounded(resizeButton, 3)
+	
+	-- Settings Button
+	local settingsButton = Instance.new("ImageButton")
+	settingsButton.Name = "SettingsButton"
+	settingsButton.Parent = top
+	settingsButton.BackgroundTransparency = 1
+	settingsButton.AnchorPoint = Vector2.new(1, 0.5)
+	settingsButton.Position = UDim2.new(1, -85, 0.5, 0)
+	settingsButton.Size = UDim2.new(0, 20, 0, 20)
+	settingsButton.Image = "rbxassetid://10734950020"
+	settingsButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	settingsButton.ZIndex = 5
+	settingsButton.Active = true
+	CreateRounded(settingsButton, 3)
 	
 	-- Background Settings Frame
 	local backgroundSettings = Instance.new("Frame")
@@ -613,8 +616,8 @@ function Update:Window(config)
 	end)
 	
 	CreateButton("Reset Config", function()
-		if isfolder("Vicat Hub") then
-			delfolder("Vicat Hub")
+		if isfolder("VicatHub") then
+			delfolder("VicatHub")
 		end
 		Update:Notify("Config has been reset!")
 	end)
@@ -681,6 +684,10 @@ function Update:Window(config)
 	uiPageLayout.EasingStyle = Enum.EasingStyle.Quad
 	uiPageLayout.TweenTime = 0.3
 	uiPageLayout.Animated = true
+	uiPageLayout.FillDirection = Enum.FillDirection.Vertical
+	uiPageLayout.GamepadInputEnabled = false
+	uiPageLayout.ScrollWheelInputEnabled = false
+	uiPageLayout.TouchInputEnabled = false
 	
 	-- Auto-resize canvas
 	RunService.Stepped:Connect(function()
@@ -754,8 +761,12 @@ function Update:Window(config)
 		local uiPadding = Instance.new("UIPadding")
 		uiPadding.Parent = mainFramePage
 		
-		-- Tab Click Handler
+		-- Tab Click Handler với animation mới
+		local currentTabIndex = 0
+		
 		tabButton.MouseButton1Click:Connect(function()
+			local clickedIndex = tabButton.LayoutOrder or 0
+			
 			for _, v in pairs(scrollTab:GetChildren()) do
 				if v:IsA("TextButton") then
 					TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
@@ -780,6 +791,23 @@ function Update:Window(config)
 			TweenService:Create(icon, TweenInfo.new(0.3), {ImageTransparency = 0}):Play()
 			TweenService:Create(title, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
 			
+			-- Animation logic
+			if SettingsLib.PageAnimation then
+				-- Xác định hướng animation
+				if clickedIndex > currentTabIndex then
+					-- Đi xuống
+					uiPageLayout.EasingDirection = Enum.EasingDirection.Out
+				else
+					-- Đi lên  
+					uiPageLayout.EasingDirection = Enum.EasingDirection.In
+				end
+				uiPageLayout.TweenTime = 0.3
+			else
+				-- Không có animation
+				uiPageLayout.TweenTime = 0
+			end
+			
+			currentTabIndex = clickedIndex
 			uiPageLayout:JumpTo(mainFramePage)
 		end)
 		
@@ -1192,11 +1220,12 @@ function Update:Window(config)
 			title.TextSize = 15
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			
-			-- TextBox để nhập số
+			-- TextBox để nhập số (màu đen hơn)
 			local valueBox = Instance.new("TextBox")
 			valueBox.Parent = sliderr
-			valueBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+			valueBox.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 			valueBox.BackgroundTransparency = 0
+			valueBox.BorderSizePixel = 0
 			valueBox.Position = UDim2.new(1, -65, 0, 5)
 			valueBox.AnchorPoint = Vector2.new(0, 0)
 			valueBox.Size = UDim2.new(0, 55, 0, 22)
