@@ -1,4 +1,4 @@
--- Vicat Hub - Optimized Version 12.0
+-- Vicat Hub
 local coreGui = game:GetService("CoreGui")
 if coreGui:FindFirstChild("VicatHub") then coreGui.VicatHub:Destroy() end
 if coreGui:FindFirstChild("ScreenGui") then coreGui.ScreenGui:Destroy() end
@@ -410,6 +410,186 @@ function Update:Window(config)
 	)
 	subTitle.Size = UDim2.new(0, subTitleSize.X, 0, 25)
 	
+	-- Background Settings Frame (tạo trước để có thể reference)
+	local backgroundSettings = Instance.new("Frame")
+	backgroundSettings.Name = "BackgroundSettings"
+	backgroundSettings.Parent = outlineMain
+	backgroundSettings.Active = true
+	backgroundSettings.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	backgroundSettings.BackgroundTransparency = 0.3
+	backgroundSettings.Size = UDim2.new(1, 0, 1, 0)
+	backgroundSettings.Visible = false
+	backgroundSettings.ZIndex = 10
+	CreateRounded(backgroundSettings, 15)
+	
+	local settingsFrame = Instance.new("Frame")
+	settingsFrame.Name = "SettingsFrame"
+	settingsFrame.Parent = backgroundSettings
+	settingsFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
+	settingsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	settingsFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	settingsFrame.Size = UDim2.new(0.7, 0, 0.7, 0)
+	settingsFrame.ZIndex = 11
+	CreateRounded(settingsFrame, 15)
+	
+	local closeSettings = Instance.new("ImageButton")
+	closeSettings.Name = "CloseSettings"
+	closeSettings.Parent = settingsFrame
+	closeSettings.BackgroundTransparency = 1
+	closeSettings.AnchorPoint = Vector2.new(1, 0)
+	closeSettings.Position = UDim2.new(1, -20, 0, 15)
+	closeSettings.Size = UDim2.new(0, 20, 0, 20)
+	closeSettings.Image = "rbxassetid://10747384394"
+	closeSettings.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	closeSettings.ZIndex = 12
+	CreateRounded(closeSettings, 3)
+	
+	closeSettings.MouseButton1Click:Connect(function()
+		backgroundSettings.Visible = false
+	end)
+	
+	local titleSettings = Instance.new("TextLabel")
+	titleSettings.Name = "TitleSettings"
+	titleSettings.Parent = settingsFrame
+	titleSettings.BackgroundTransparency = 1
+	titleSettings.Position = UDim2.new(0, 20, 0, 15)
+	titleSettings.Size = UDim2.new(1, 0, 0, 20)
+	titleSettings.Font = Enum.Font.GothamBold
+	titleSettings.Text = "Library Settings"
+	titleSettings.TextSize = 20
+	titleSettings.TextColor3 = Color3.fromRGB(245, 245, 245)
+	titleSettings.TextXAlignment = Enum.TextXAlignment.Left
+	titleSettings.ZIndex = 12
+	
+	local settingsMenuList = Instance.new("Frame")
+	settingsMenuList.Name = "SettingsMenuList"
+	settingsMenuList.Parent = settingsFrame
+	settingsMenuList.BackgroundTransparency = 1
+	settingsMenuList.Position = UDim2.new(0, 0, 0, 50)
+	settingsMenuList.Size = UDim2.new(1, 0, 1, -70)
+	settingsMenuList.ZIndex = 11
+	CreateRounded(settingsMenuList, 15)
+	
+	local scrollSettings = Instance.new("ScrollingFrame")
+	scrollSettings.Name = "ScrollSettings"
+	scrollSettings.Parent = settingsMenuList
+	scrollSettings.BackgroundTransparency = 1
+	scrollSettings.Size = UDim2.new(1, 0, 1, 0)
+	scrollSettings.ScrollBarThickness = 3
+	scrollSettings.ZIndex = 11
+	
+	local settingsListLayout = Instance.new("UIListLayout")
+	settingsListLayout.Parent = scrollSettings
+	settingsListLayout.Padding = UDim.new(0, 8)
+	
+	local paddingScroll = Instance.new("UIPadding")
+	paddingScroll.Parent = scrollSettings
+	paddingScroll.PaddingLeft = UDim.new(0, 20)
+	paddingScroll.PaddingRight = UDim.new(0, 20)
+	
+	-- Settings Functions
+	local function CreateCheckbox(title, state, callback)
+		local checked = state or false
+		
+		local background = Instance.new("Frame")
+		background.Name = "Background"
+		background.Parent = scrollSettings
+		background.BackgroundTransparency = 1
+		background.Size = UDim2.new(1, 0, 0, 20)
+		background.ZIndex = 11
+		
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.Parent = background
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Position = UDim2.new(0, 60, 0.5, 0)
+		titleLabel.AnchorPoint = Vector2.new(0, 0.5)
+		titleLabel.Size = UDim2.new(1, -60, 0, 20)
+		titleLabel.Font = Enum.Font.Code
+		titleLabel.Text = title or ""
+		titleLabel.TextSize = 15
+		titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		titleLabel.ZIndex = 12
+		
+		local checkbox = Instance.new("ImageButton")
+		checkbox.Parent = background
+		checkbox.BackgroundColor3 = checked and _G.Third or Color3.fromRGB(100, 100, 100)
+		checkbox.AnchorPoint = Vector2.new(0, 0.5)
+		checkbox.Position = UDim2.new(0, 30, 0.5, 0)
+		checkbox.Size = UDim2.new(0, 20, 0, 20)
+		checkbox.Image = "rbxassetid://10709790644"
+		checkbox.ImageTransparency = checked and 0 or 1
+		checkbox.ImageColor3 = Color3.fromRGB(245, 245, 245)
+		checkbox.ZIndex = 12
+		CreateRounded(checkbox, 5)
+		
+		checkbox.MouseButton1Click:Connect(function()
+			checked = not checked
+			checkbox.BackgroundColor3 = checked and _G.Third or Color3.fromRGB(100, 100, 100)
+			checkbox.ImageTransparency = checked and 0 or 1
+			pcall(callback, checked)
+		end)
+		
+		pcall(callback, checked)
+	end
+	
+	local function CreateButton(title, callback)
+		local background = Instance.new("Frame")
+		background.Name = "Background"
+		background.Parent = scrollSettings
+		background.BackgroundTransparency = 1
+		background.Size = UDim2.new(1, 0, 0, 30)
+		background.ZIndex = 11
+		
+		local button = Instance.new("TextButton")
+		button.Parent = background
+		button.BackgroundColor3 = _G.Third
+		button.Size = UDim2.new(0.8, 0, 0, 30)
+		button.Font = Enum.Font.Code
+		button.Text = title or "Button"
+		button.AnchorPoint = Vector2.new(0.5, 0)
+		button.Position = UDim2.new(0.5, 0, 0, 0)
+		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		button.TextSize = 15
+		button.AutoButtonColor = false
+		button.ZIndex = 12
+		CreateRounded(button, 5)
+		
+		button.MouseButton1Click:Connect(function()
+			callback()
+		end)
+	end
+	
+	-- Add settings options
+	CreateCheckbox("Save Settings", SettingsLib.SaveSettings, function(state)
+		SettingsLib.SaveSettings = state
+		getgenv().SaveConfig()
+	end)
+	
+	CreateCheckbox("Loading Animation", SettingsLib.LoadAnimation, function(state)
+		SettingsLib.LoadAnimation = state
+		getgenv().SaveConfig()
+	end)
+	
+	CreateCheckbox("Page Animation", SettingsLib.PageAnimation, function(state)
+		SettingsLib.PageAnimation = state
+		getgenv().SaveConfig()
+	end)
+	
+	CreateButton("Reset Config", function()
+		if isfolder("Vicat Hub") then
+			delfolder("Vicat Hub")
+		end
+		Update:Notify("Config has been reset!")
+	end)
+	
+	-- Auto-resize settings canvas
+	RunService.Stepped:Connect(function()
+		pcall(function()
+			scrollSettings.CanvasSize = UDim2.new(0, 0, 0, settingsListLayout.AbsoluteContentSize.Y)
+		end)
+	end)
+	
 	-- Close Button
 	local closeButton = Instance.new("ImageButton")
 	closeButton.Parent = top
@@ -437,7 +617,6 @@ function Update:Window(config)
 	resizeButton.Image = "rbxassetid://10734886735"
 	resizeButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
 	resizeButton.ZIndex = 5
-	resizeButton.Active = true
 	CreateRounded(resizeButton, 3)
 	
 	-- Settings Button
@@ -451,8 +630,35 @@ function Update:Window(config)
 	settingsButton.Image = "rbxassetid://10734950020"
 	settingsButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
 	settingsButton.ZIndex = 5
-	settingsButton.Active = true
 	CreateRounded(settingsButton, 3)
+	
+	-- Settings button click handler
+	settingsButton.MouseButton1Click:Connect(function()
+		backgroundSettings.Visible = true
+	end)
+	
+	-- Resize functionality
+	local defaultSize = true
+	resizeButton.MouseButton1Click:Connect(function()
+		if defaultSize then
+			defaultSize = false
+			outlineMain:TweenPosition(UDim2.new(0.5, 0, 0.45, 0), "Out", "Quad", 0.2, true)
+			main:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 0.4, true, function()
+				page:TweenSize(UDim2.new(0, main.AbsoluteSize.X - tab.AbsoluteSize.X - 25, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
+				tab:TweenSize(UDim2.new(0, windowConfig.TabWidth, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
+			end)
+			outlineMain:TweenSize(UDim2.new(1, -10, 1, -10), "Out", "Quad", 0.4, true)
+			resizeButton.Image = "rbxassetid://10734895698"
+		else
+			defaultSize = true
+			main:TweenSize(UDim2.new(0, windowConfig.Size.X.Offset, 0, windowConfig.Size.Y.Offset), "Out", "Quad", 0.4, true, function()
+				page:TweenSize(UDim2.new(0, main.AbsoluteSize.X - tab.AbsoluteSize.X - 25, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
+				tab:TweenSize(UDim2.new(0, windowConfig.TabWidth, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
+			end)
+			outlineMain:TweenSize(UDim2.new(0, windowConfig.Size.X.Offset + 15, 0, windowConfig.Size.Y.Offset + 15), "Out", "Quad", 0.4, true)
+			resizeButton.Image = "rbxassetid://10734886735"
+		end
+	end)
 	
 	-- Background Settings Frame
 	local backgroundSettings = Instance.new("Frame")
