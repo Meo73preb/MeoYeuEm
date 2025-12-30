@@ -1,4 +1,5 @@
--- Vicat Hub
+-- Vicat Hub - Optimized Version
+-- Kiểm tra và xóa UI cũ
 local coreGui = game:GetService("CoreGui")
 if coreGui:FindFirstChild("VicatHub") then coreGui.VicatHub:Destroy() end
 if coreGui:FindFirstChild("ScreenGui") then coreGui.ScreenGui:Destroy() end
@@ -642,20 +643,54 @@ function Update:Window(config)
 	resizeButton.MouseButton1Click:Connect(function()
 		if defaultSize then
 			defaultSize = false
-			outlineMain:TweenPosition(UDim2.new(0.5, 0, 0.45, 0), "Out", "Quad", 0.2, true)
-			main:TweenSize(UDim2.new(1, 0, 1, 0), "Out", "Quad", 0.4, true, function()
-				page:TweenSize(UDim2.new(0, main.AbsoluteSize.X - tab.AbsoluteSize.X - 25, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
-				tab:TweenSize(UDim2.new(0, windowConfig.TabWidth, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
-			end)
+			
+			-- Tween to fullscreen
+			local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			
+			outlineMain:TweenPosition(UDim2.new(0.5, 0, 0.5, 0), "Out", "Quad", 0.2, true)
 			outlineMain:TweenSize(UDim2.new(1, -10, 1, -10), "Out", "Quad", 0.4, true)
+			
+			TweenService:Create(main, tweenInfo, {
+				Size = UDim2.new(1, -20, 1, -20)
+			}):Play()
+			
+			-- Wait a bit then update children
+			task.wait(0.1)
+			
+			TweenService:Create(page, tweenInfo, {
+				Size = UDim2.new(0, main.AbsoluteSize.X - tab.AbsoluteSize.X - 25, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10)
+			}):Play()
+			
+			TweenService:Create(tab, tweenInfo, {
+				Size = UDim2.new(0, windowConfig.TabWidth, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10)
+			}):Play()
+			
 			resizeButton.Image = "rbxassetid://10734895698"
+			
 		else
 			defaultSize = true
-			main:TweenSize(UDim2.new(0, windowConfig.Size.X.Offset, 0, windowConfig.Size.Y.Offset), "Out", "Quad", 0.4, true, function()
-				page:TweenSize(UDim2.new(0, main.AbsoluteSize.X - tab.AbsoluteSize.X - 25, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
-				tab:TweenSize(UDim2.new(0, windowConfig.TabWidth, 0, main.AbsoluteSize.Y - top.AbsoluteSize.Y - 10), "Out", "Quad", 0.4, true)
-			end)
+			
+			-- Tween back to normal
+			local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			
 			outlineMain:TweenSize(UDim2.new(0, windowConfig.Size.X.Offset + 15, 0, windowConfig.Size.Y.Offset + 15), "Out", "Quad", 0.4, true)
+			outlineMain:TweenPosition(UDim2.new(0.5, 0, 0.45, 0), "Out", "Quad", 0.2, true)
+			
+			TweenService:Create(main, tweenInfo, {
+				Size = windowConfig.Size
+			}):Play()
+			
+			-- Wait a bit then update children
+			task.wait(0.1)
+			
+			TweenService:Create(page, tweenInfo, {
+				Size = UDim2.new(0, windowConfig.Size.X.Offset - tab.Size.X.Offset - 25, 0, windowConfig.Size.Y.Offset - top.Size.Y.Offset - 10)
+			}):Play()
+			
+			TweenService:Create(tab, tweenInfo, {
+				Size = UDim2.new(0, windowConfig.TabWidth, 0, windowConfig.Size.Y.Offset - top.Size.Y.Offset - 10)
+			}):Play()
+			
 			resizeButton.Image = "rbxassetid://10734886735"
 		end
 	end)
@@ -884,17 +919,6 @@ function Update:Window(config)
 	pageList.Name = "PageList"
 	pageList.Parent = mainPage
 	
-	local uiPageLayout = Instance.new("UIPageLayout")
-	uiPageLayout.Parent = pageList
-	uiPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	uiPageLayout.EasingStyle = Enum.EasingStyle.Quad
-	uiPageLayout.TweenTime = 0.3
-	uiPageLayout.Animated = true
-	uiPageLayout.FillDirection = Enum.FillDirection.Vertical
-	uiPageLayout.GamepadInputEnabled = false
-	uiPageLayout.ScrollWheelInputEnabled = false
-	uiPageLayout.TouchInputEnabled = false
-	
 	-- Auto-resize canvas
 	RunService.Stepped:Connect(function()
 		pcall(function()
@@ -968,10 +992,20 @@ function Update:Window(config)
 		uiPadding.Parent = mainFramePage
 		
 		-- Tab Click Handler với animation mới
-		local currentTabIndex = 0
+		local tabIndex = 0
+		
+		-- Set index cho tab button
+		tabButton.LayoutOrder = tabIndex
+		local currentTabIndex = tabIndex
+		tabIndex = tabIndex + 1
 		
 		tabButton.MouseButton1Click:Connect(function()
-			local clickedIndex = tabButton.LayoutOrder or 0
+			local clickedIndex = tabButton.LayoutOrder
+			
+			-- Nếu click vào tab hiện tại, không làm gì cả
+			if clickedIndex == currentTabIndex then
+				return
+			end
 			
 			for _, v in pairs(scrollTab:GetChildren()) do
 				if v:IsA("TextButton") then
@@ -1001,32 +1035,32 @@ function Update:Window(config)
 			if SettingsLib.PageAnimation then
 				-- Xác định hướng animation
 				if clickedIndex > currentTabIndex then
-					-- Đi xuống
-					uiPageLayout.EasingDirection = Enum.EasingDirection.Out
+					-- Đi xuống (tab 1 -> 3)
+					mainFramePage.Position = UDim2.new(0, 0, 1, 0) -- Start below
+					mainFramePage:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quad", 0.3, true)
 				else
-					-- Đi lên  
-					uiPageLayout.EasingDirection = Enum.EasingDirection.In
+					-- Đi lên (tab 3 -> 1)
+					mainFramePage.Position = UDim2.new(0, 0, -1, 0) -- Start above
+					mainFramePage:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quad", 0.3, true)
 				end
-				uiPageLayout.TweenTime = 0.3
 			else
-				-- Không có animation
-				uiPageLayout.TweenTime = 0
+				-- Không có animation, hiện ngay
+				mainFramePage.Position = UDim2.new(0, 0, 0, 0)
 			end
 			
 			currentTabIndex = clickedIndex
-			uiPageLayout:JumpTo(mainFramePage)
 		end)
 		
 		-- Select first tab by default
 		if not abc then
 			-- Hiển thị tab đầu tiên
 			mainFramePage.Visible = true
+			mainFramePage.Position = UDim2.new(0, 0, 0, 0)
 			
 			TweenService:Create(tabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0.8}):Play()
 			TweenService:Create(selectedTab, TweenInfo.new(0.3), {Size = UDim2.new(0, 3, 0, 15)}):Play()
 			TweenService:Create(icon, TweenInfo.new(0.3), {ImageTransparency = 0}):Play()
 			TweenService:Create(title, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
-			uiPageLayout:JumpToIndex(1)
 			abc = true
 		end
 		
