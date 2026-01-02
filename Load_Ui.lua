@@ -388,11 +388,14 @@ local toggleConnections = CreateToggleButton()
 local Update = {}
 
 Update.Notify = NotificationSystem.Notify
-Update.StartLoad = function() end
-Update.Loaded = function() end
 
 function Update:SaveSettings()
 	return Config.Settings.SaveSettings
+end
+
+function Update:LoadAnimation()
+	-- Deprecated - Always returns false
+	return false
 end
 
 function Update:PageAnimation()
