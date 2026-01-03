@@ -1,6 +1,4 @@
 -- Vicat Hub - Fully Optimized Version
--- Improved with: Error handling, Config system, Memory management, Mobile support
-
 -- ==================== CONFIGURATION ====================
 local Config = {
 	UI = {
@@ -983,6 +981,244 @@ function Update:Window(windowConfig)
 				
 				currentTabIndex = 0
 				abc = true
+				
+				-- Add demo content to first tab for testing
+				task.spawn(function()
+					task.wait(0.1)
+					pcall(function()
+						local demoMain = {}
+						
+						-- Button Demo
+						function demoMain:Button(text, callback)
+							local button = Instance.new("Frame")
+							button.Name = "Button"
+							button.Parent = mainFramePage
+							button.BackgroundTransparency = 1
+							button.Size = UDim2.new(1, 0, 0, 40)
+							Utilities.CreateRounded(button, Config.UI.Sizes.RoundedCorner.Medium)
+							
+							local textLabel = Instance.new("TextLabel")
+							textLabel.Parent = button
+							textLabel.BackgroundTransparency = 1
+							textLabel.Position = UDim2.new(0, Config.UI.Spacing.ButtonGap, 0.5, 0)
+							textLabel.AnchorPoint = Vector2.new(0, 0.5)
+							textLabel.Size = UDim2.new(1, -70, 1, 0)
+							textLabel.Font = Enum.Font.Cartoon
+							textLabel.Text = text
+							textLabel.TextColor3 = Config.Colors.Text.Primary
+							textLabel.TextSize = 15
+							textLabel.TextXAlignment = Enum.TextXAlignment.Left
+							
+							local textButton = Instance.new("TextButton")
+							textButton.Parent = button
+							textButton.BackgroundColor3 = Config.Colors.Background.Darker
+							textButton.BackgroundTransparency = 0
+							textButton.AnchorPoint = Vector2.new(1, 0.5)
+							textButton.Position = UDim2.new(1, -5, 0.5, 0)
+							textButton.Size = UDim2.new(0, 30, 0, 30)
+							textButton.Text = ""
+							Utilities.CreateRounded(textButton, Config.UI.Sizes.RoundedCorner.Small)
+							
+							local imageLabel = Instance.new("ImageLabel")
+							imageLabel.Parent = textButton
+							imageLabel.BackgroundTransparency = 1
+							imageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+							imageLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+							imageLabel.Size = UDim2.new(0, 18, 0, 18)
+							imageLabel.Image = "rbxassetid://10734898355"
+							imageLabel.ImageColor3 = Config.Colors.Text.Primary
+							
+							windowData.Connections:Add(textButton.MouseButton1Click:Connect(function()
+								pcall(callback)
+								Utilities.SafeTween(textButton, TweenInfo.new(0.1), {BackgroundColor3 = Config.Colors.Accent})
+								task.wait(0.1)
+								Utilities.SafeTween(textButton, TweenInfo.new(0.1), {BackgroundColor3 = Config.Colors.Background.Darker})
+							end))
+						end
+						
+						-- Toggle Demo
+						function demoMain:Toggle(text, config, desc, callback)
+							config = config or false
+							local toggled = config
+							
+							local button = Instance.new("TextButton")
+							button.Name = "Toggle"
+							button.Parent = mainFramePage
+							button.BackgroundColor3 = Config.Colors.Primary
+							button.BackgroundTransparency = 0.8
+							button.AutoButtonColor = false
+							button.Text = ""
+							button.Size = UDim2.new(1, 0, 0, desc and 46 or 36)
+							Utilities.CreateRounded(button, Config.UI.Sizes.RoundedCorner.Medium)
+							
+							local titleLabel = Instance.new("TextLabel")
+							titleLabel.Parent = button
+							titleLabel.BackgroundTransparency = 1
+							titleLabel.Size = UDim2.new(1, 0, 0, 35)
+							titleLabel.Font = Enum.Font.Cartoon
+							titleLabel.Text = text
+							titleLabel.TextColor3 = Config.Colors.Text.Primary
+							titleLabel.TextSize = 15
+							titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+							titleLabel.AnchorPoint = Vector2.new(0, 0.5)
+							titleLabel.Position = UDim2.new(0, 15, 0.5, desc and -5 or 0)
+							
+							if desc then
+								local descLabel = Instance.new("TextLabel")
+								descLabel.Parent = titleLabel
+								descLabel.BackgroundTransparency = 1
+								descLabel.Position = UDim2.new(0, 0, 0, 22)
+								descLabel.Size = UDim2.new(0, 280, 0, 16)
+								descLabel.Font = Enum.Font.Gotham
+								descLabel.Text = desc
+								descLabel.TextColor3 = Config.Colors.Text.Disabled
+								descLabel.TextSize = 10
+								descLabel.TextXAlignment = Enum.TextXAlignment.Left
+							end
+							
+							local toggleFrame = Instance.new("Frame")
+							toggleFrame.Parent = button
+							toggleFrame.BackgroundTransparency = 1
+							toggleFrame.Position = UDim2.new(1, -10, 0.5, 0)
+							toggleFrame.Size = UDim2.new(0, 35, 0, 20)
+							toggleFrame.AnchorPoint = Vector2.new(1, 0.5)
+							Utilities.CreateRounded(toggleFrame, 10)
+							
+							local toggleImage = Instance.new("TextButton")
+							toggleImage.Parent = toggleFrame
+							toggleImage.BackgroundColor3 = toggled and Config.Colors.Accent or Color3.fromRGB(200, 200, 200)
+							toggleImage.BackgroundTransparency = toggled and 0 or 0.8
+							toggleImage.Size = UDim2.new(1, 0, 1, 0)
+							toggleImage.Text = ""
+							toggleImage.AutoButtonColor = false
+							Utilities.CreateRounded(toggleImage, 10)
+							
+							local circle = Instance.new("Frame")
+							circle.Parent = toggleImage
+							circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+							circle.Position = UDim2.new(0, toggled and 17 or 3, 0.5, 0)
+							circle.Size = UDim2.new(0, 14, 0, 14)
+							circle.AnchorPoint = Vector2.new(0, 0.5)
+							Utilities.CreateRounded(circle, 10)
+							
+							windowData.Connections:Add(toggleImage.MouseButton1Click:Connect(function()
+								toggled = not toggled
+								if toggled then
+									circle:TweenPosition(UDim2.new(0, 17, 0.5, 0), "Out", "Sine", 0.2, true)
+									Utilities.SafeTween(toggleImage, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+										BackgroundColor3 = Config.Colors.Accent,
+										BackgroundTransparency = 0
+									})
+								else
+									circle:TweenPosition(UDim2.new(0, 3, 0.5, 0), "Out", "Sine", 0.2, true)
+									Utilities.SafeTween(toggleImage, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+										BackgroundColor3 = Color3.fromRGB(200, 200, 200),
+										BackgroundTransparency = 0.8
+									})
+								end
+								pcall(callback, toggled)
+							end))
+							
+							if config then pcall(callback, toggled) end
+						end
+						
+						-- Label Demo
+						function demoMain:Label(text)
+							local frame = Instance.new("Frame")
+							frame.Name = "Label"
+							frame.Parent = mainFramePage
+							frame.BackgroundTransparency = 1
+							frame.Size = UDim2.new(1, 0, 0, 30)
+							
+							local label = Instance.new("TextLabel")
+							label.Parent = frame
+							label.BackgroundTransparency = 1
+							label.Position = UDim2.new(0, 30, 0.5, 0)
+							label.AnchorPoint = Vector2.new(0, 0.5)
+							label.Size = UDim2.new(1, -30, 0, 30)
+							label.Font = Enum.Font.Nunito
+							label.Text = text
+							label.TextColor3 = Config.Colors.Text.Secondary
+							label.TextSize = 15
+							label.TextXAlignment = Enum.TextXAlignment.Left
+							
+							local imageLabel = Instance.new("ImageLabel")
+							imageLabel.Parent = frame
+							imageLabel.BackgroundTransparency = 1
+							imageLabel.Position = UDim2.new(0, 10, 0.5, 0)
+							imageLabel.AnchorPoint = Vector2.new(0, 0.5)
+							imageLabel.Size = UDim2.new(0, 14, 0, 14)
+							imageLabel.Image = "rbxassetid://10723415903"
+							imageLabel.ImageColor3 = Config.Colors.Text.Secondary
+							
+							return {
+								Set = function(_, newtext)
+									label.Text = newtext
+								end
+							}
+						end
+						
+						-- Separator Demo
+						function demoMain:Seperator(text)
+							local seperator = Instance.new("Frame")
+							seperator.Name = "Seperator"
+							seperator.Parent = mainFramePage
+							seperator.BackgroundTransparency = 1
+							seperator.Size = UDim2.new(1, 0, 0, 36)
+							
+							local sep1 = Instance.new("TextLabel")
+							sep1.Parent = seperator
+							sep1.BackgroundTransparency = 1
+							sep1.Position = UDim2.new(0, 0, 0.5, 0)
+							sep1.AnchorPoint = Vector2.new(0, 0.5)
+							sep1.Size = UDim2.new(0, 20, 0, 36)
+							sep1.Font = Enum.Font.GothamBold
+							sep1.RichText = true
+							sep1.Text = '《<font color="rgb(255, 0, 0)">《</font>'
+							sep1.TextColor3 = Config.Colors.Text.Primary
+							sep1.TextSize = 14
+							
+							local sep2 = Instance.new("TextLabel")
+							sep2.Parent = seperator
+							sep2.BackgroundTransparency = 1
+							sep2.Position = UDim2.new(0.5, 0, 0.5, 0)
+							sep2.AnchorPoint = Vector2.new(0.5, 0.5)
+							sep2.Size = UDim2.new(1, 0, 0, 36)
+							sep2.Font = Enum.Font.GothamBold
+							sep2.Text = text
+							sep2.TextColor3 = Config.Colors.Text.Primary
+							sep2.TextSize = 14
+							
+							local sep3 = Instance.new("TextLabel")
+							sep3.Parent = seperator
+							sep3.BackgroundTransparency = 1
+							sep3.Position = UDim2.new(1, 0, 0.5, 0)
+							sep3.AnchorPoint = Vector2.new(1, 0.5)
+							sep3.Size = UDim2.new(0, 20, 0, 36)
+							sep3.Font = Enum.Font.GothamBold
+							sep3.RichText = true
+							sep3.Text = '<font color="rgb(255, 0, 0)">》</font>》'
+							sep3.TextColor3 = Config.Colors.Text.Primary
+							sep3.TextSize = 14
+						end
+						
+						-- Add demo content
+						demoMain:Label("✨ Welcome to Vicat Hub!")
+						demoMain:Seperator("Example Components")
+						demoMain:Button("Click Me", function()
+							NotificationSystem.Notify("Button clicked!")
+						end)
+						demoMain:Toggle("Auto Farm", false, "Enable auto farming", function(state)
+							NotificationSystem.Notify("Toggle: " .. tostring(state))
+						end)
+						demoMain:Toggle("Auto Collect", false, nil, function(state)
+							print("Auto Collect:", state)
+						end)
+						demoMain:Label("ℹ️ Status: Ready")
+						demoMain:Seperator("Settings")
+						demoMain:Label("🎮 Use the components above!")
+					end)
+				end)
 			end
 			
 			windowData.Connections:Add(Services.RunService.Heartbeat:Connect(function()
