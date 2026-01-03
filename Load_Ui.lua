@@ -4,7 +4,6 @@ local coreGui = game:GetService("CoreGui")
 if coreGui:FindFirstChild("VicatHub") then coreGui.VicatHub:Destroy() end
 if coreGui:FindFirstChild("ScreenGui") then coreGui.ScreenGui:Destroy() end
 
--- Constants để tránh hard-coded values
 local CONSTANTS = {
     CORNER_RADIUS = {
         SMALL = 5,
@@ -23,7 +22,7 @@ local CONSTANTS = {
             NORMAL = UDim2.new(0, 30, 0, 30),
             SMALL = UDim2.new(0, 20, 0, 20)
         },
-        TAB_WIDTH = 167,
+        TAB_WIDTH = 150,
         WINDOW_WIDTH = 500,
         WINDOW_HEIGHT = 350
     }
@@ -130,6 +129,9 @@ imageButton.MouseButton1Click:Connect(function()
     if hub then hub.Enabled = not hub.Enabled end
 end)
 
+-- Tạo global Update table
+local Update = {}
+
 -- Hệ thống thông báo được cải thiện
 local notificationFrame = Instance.new("ScreenGui")
 notificationFrame.Name = "NotificationFrame"
@@ -181,8 +183,6 @@ task.spawn(function()
         end
     end
 end)
-
-local Update = {}
 
 function Update:Notify(desc)
     local outlineFrame = Instance.new("Frame")
@@ -264,39 +264,56 @@ local SettingsLib = {
     PageAnimation = true
 }
 
-getgenv().LoadConfig = function()
-    if pcall(function() return readfile end) and readfile and writefile and isfile and isfolder then
-        if not isfolder("Vicat Hub") then 
-            pcall(makefolder, "Vicat Hub") 
-        end
-        if not isfolder("Vicat Hub/Library/") then 
-            pcall(makefolder, "Vicat Hub/Library/") 
-        end
-        
-        local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
-        if not pcall(isfile, configPath) or not isfile(configPath) then
-            pcall(writefile, configPath, HttpService:JSONEncode(SettingsLib))
-        else
-            local success, decode = pcall(HttpService.JSONDecode, HttpService, readfile(configPath))
-            if success and decode then
-                for i, v in pairs(decode) do
-                    SettingsLib[i] = v
+-- Tạo các hàm config trong global environment
+local function SetupConfigFunctions()
+    -- Kiểm tra file functions tồn tại
+    local fileFunctionsExist = pcall(function()
+        return readfile and writefile and isfile and isfolder
+    end)
+    
+    if fileFunctionsExist then
+        getgenv().LoadConfig = function()
+            if not isfolder("Vicat Hub") then 
+                pcall(makefolder, "Vicat Hub") 
+            end
+            if not isfolder("Vicat Hub/Library/") then 
+                pcall(makefolder, "Vicat Hub/Library/") 
+            end
+            
+            local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
+            if not isfile(configPath) then
+                pcall(writefile, configPath, HttpService:JSONEncode(SettingsLib))
+            else
+                local success, decode = pcall(HttpService.JSONDecode, HttpService, readfile(configPath))
+                if success and decode then
+                    for i, v in pairs(decode) do
+                        SettingsLib[i] = v
+                    end
                 end
             end
+            print("Vicat Hub Config Loaded!")
+        end
+        
+        getgenv().SaveConfig = function()
+            local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
+            pcall(writefile, configPath, HttpService:JSONEncode(SettingsLib))
         end
     else
-        warn("Executor không hỗ trợ file system")
+        getgenv().LoadConfig = function()
+            warn("Executor không hỗ trợ file system")
+        end
+        
+        getgenv().SaveConfig = function()
+            warn("Executor không hỗ trợ file system")
+        end
     end
+    
+    -- Load config ngay lập tức
+    getgenv().LoadConfig()
 end
 
-getgenv().SaveConfig = function()
-    if pcall(function() return writefile end) and writefile and isfile and isfolder then
-        local configPath = "Vicat Hub/Library/" .. Players.LocalPlayer.Name .. ".json"
-        pcall(writefile, configPath, HttpService:JSONEncode(SettingsLib))
-    end
-end
-
-getgenv().LoadConfig()
+-- Gọi hàm setup config
+SetupConfigFunctions()
 
 function Update:SaveSettings()
     return SettingsLib.SaveSettings
@@ -1104,501 +1121,508 @@ function Update:Window(config)
             end
         end
         
-		-- Dropdown Component
-		function main:Dropdown(text, option, var, callback)
-			local isdropping = false
-			local activeItem = var
-			
-			local dropdown = Instance.new("Frame")
-			dropdown.Name = "Dropdown"
-			dropdown.Parent = mainFramePage
-			dropdown.BackgroundColor3 = _G.Primary
-			dropdown.BackgroundTransparency = 0.8
-			dropdown.Size = UDim2.new(1, 0, 0, 40)
-			CreateRounded(dropdown, 5)
-			
-			local dropTitle = Instance.new("TextLabel")
-			dropTitle.Parent = dropdown
-			dropTitle.BackgroundTransparency = 1
-			dropTitle.Position = UDim2.new(0, 15, 0, 5)
-			dropTitle.Size = UDim2.new(1, 0, 0, 30)
-			dropTitle.Font = Enum.Font.Cartoon
-			dropTitle.Text = text
-			dropTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-			dropTitle.TextSize = 15
-			dropTitle.TextXAlignment = Enum.TextXAlignment.Left
-			
-			local selectItems = Instance.new("TextButton")
-			selectItems.Parent = dropdown
-			selectItems.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
-			selectItems.Position = UDim2.new(1, -5, 0, 5)
-			selectItems.AnchorPoint = Vector2.new(1, 0)
-			selectItems.Size = UDim2.new(0, 100, 0, 30)
-			selectItems.Font = Enum.Font.GothamMedium
-			selectItems.Text = "   " .. (var or "Select Items")
-			selectItems.TextColor3 = Color3.fromRGB(255, 255, 255)
-			selectItems.TextSize = 9
-			selectItems.TextXAlignment = Enum.TextXAlignment.Left
-			CreateRounded(selectItems, 5)
-			
-			local arrowDown = Instance.new("ImageLabel")
-			arrowDown.Parent = dropdown
-			arrowDown.BackgroundTransparency = 1
-			arrowDown.Position = UDim2.new(1, -110, 0, 10)
-			arrowDown.AnchorPoint = Vector2.new(1, 0)
-			arrowDown.Size = UDim2.new(0, 20, 0, 20)
-			arrowDown.Image = "rbxassetid://10709790948"
-			arrowDown.ImageColor3 = Color3.fromRGB(255, 255, 255)
-			
-			local dropdownFrameScroll = Instance.new("Frame")
-			dropdownFrameScroll.Parent = dropdown
-			dropdownFrameScroll.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
-			dropdownFrameScroll.Position = UDim2.new(0, 5, 0, 40)
-			dropdownFrameScroll.Size = UDim2.new(1, -10, 0, 0)
-			dropdownFrameScroll.Visible = false
-			dropdownFrameScroll.ClipsDescendants = true
-			CreateRounded(dropdownFrameScroll, 5)
-			
-			local dropScroll = Instance.new("ScrollingFrame")
-			dropScroll.Parent = dropdownFrameScroll
-			dropScroll.BackgroundTransparency = 1
-			dropScroll.Position = UDim2.new(0, 0, 0, 10)
-			dropScroll.Size = UDim2.new(1, 0, 0, 80)
-			dropScroll.ScrollBarThickness = 3
-			
-			local uiListLayout = Instance.new("UIListLayout")
-			uiListLayout.Parent = dropScroll
-			uiListLayout.Padding = UDim.new(0, 1)
-			
-			local padding = Instance.new("UIPadding")
-			padding.Parent = dropScroll
-			padding.PaddingLeft = UDim.new(0, 10)
-			padding.PaddingRight = UDim.new(0, 10)
-			
-			for _, v in pairs(option) do
-				local item = Instance.new("TextButton")
-				item.Parent = dropScroll
-				item.BackgroundColor3 = _G.Primary
-				item.BackgroundTransparency = 1
-				item.Size = UDim2.new(1, 0, 0, 30)
-				item.Font = Enum.Font.Nunito
-				item.Text = tostring(v)
-				item.TextColor3 = Color3.fromRGB(255, 255, 255)
-				item.TextSize = 13
-				item.TextTransparency = 0.5
-				item.TextXAlignment = Enum.TextXAlignment.Left
-				CreateRounded(item, 5)
-				
-				local itemPadding = Instance.new("UIPadding")
-				itemPadding.Parent = item
-				itemPadding.PaddingLeft = UDim.new(0, 8)
-				
-				local selectedItems = Instance.new("Frame")
-				selectedItems.Name = "SelectedItems"
-				selectedItems.Parent = item
-				selectedItems.BackgroundColor3 = _G.Third
-				selectedItems.BackgroundTransparency = 1
-				selectedItems.Size = UDim2.new(0, 3, 0.4, 0)
-				selectedItems.Position = UDim2.new(0, -8, 0.5, 0)
-				selectedItems.AnchorPoint = Vector2.new(0, 0.5)
-				CreateRounded(selectedItems, 999)
-				
-				if var and tostring(v) == var then
-					item.BackgroundTransparency = 0.8
-					item.TextTransparency = 0
-					selectedItems.BackgroundTransparency = 0
-				end
-				
-				item.MouseButton1Click:Connect(function()
-					callback(item.Text)
-					activeItem = item.Text
-					selectItems.Text = "   " .. item.Text
-					
-					for _, child in pairs(dropScroll:GetChildren()) do
-						if child:IsA("TextButton") then
-							local sel = child:FindFirstChild("SelectedItems")
-							if child.Text == activeItem then
-								child.BackgroundTransparency = 0.8
-								child.TextTransparency = 0
-								if sel then sel.BackgroundTransparency = 0 end
-							else
-								child.BackgroundTransparency = 1
-								child.TextTransparency = 0.5
-								if sel then sel.BackgroundTransparency = 1 end
-							end
-						end
-					end
-				end)
-			end
-			
-			dropScroll.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y)
-			
-			selectItems.MouseButton1Click:Connect(function()
-				isdropping = not isdropping
-				
-				if isdropping then
-					TweenService:Create(dropdownFrameScroll, TweenInfo.new(0.3), {
-						Size = UDim2.new(1, -10, 0, 100),
-						Visible = true
-					}):Play()
-					TweenService:Create(dropdown, TweenInfo.new(0.3), {
-						Size = UDim2.new(1, 0, 0, 145)
-					}):Play()
-					TweenService:Create(arrowDown, TweenInfo.new(0.3), {Rotation = 180}):Play()
-				else
-					TweenService:Create(dropdownFrameScroll, TweenInfo.new(0.3), {
-						Size = UDim2.new(1, -10, 0, 0),
-						Visible = false
-					}):Play()
-					TweenService:Create(dropdown, TweenInfo.new(0.3), {
-						Size = UDim2.new(1, 0, 0, 40)
-					}):Play()
-					TweenService:Create(arrowDown, TweenInfo.new(0.3), {Rotation = 0}):Play()
-				end
-			end)
-			
-			local dropfunc = {}
-			
-			function dropfunc:Add(t)
-				local item = Instance.new("TextButton")
-				item.Parent = dropScroll
-				item.BackgroundColor3 = _G.Primary
-				item.BackgroundTransparency = 1
-				item.Size = UDim2.new(1, 0, 0, 30)
-				item.Font = Enum.Font.Nunito
-				item.Text = tostring(t)
-				item.TextColor3 = Color3.fromRGB(255, 255, 255)
-				item.TextSize = 13
-				item.TextTransparency = 0.5
-				item.TextXAlignment = Enum.TextXAlignment.Left
-				CreateRounded(item, 5)
-				
-				local itemPadding = Instance.new("UIPadding")
-				itemPadding.Parent = item
-				itemPadding.PaddingLeft = UDim.new(0, 8)
-				
-				local selectedItems = Instance.new("Frame")
-				selectedItems.Name = "SelectedItems"
-				selectedItems.Parent = item
-				selectedItems.BackgroundColor3 = _G.Third
-				selectedItems.BackgroundTransparency = 1
-				selectedItems.Size = UDim2.new(0, 3, 0.4, 0)
-				selectedItems.Position = UDim2.new(0, -8, 0.5, 0)
-				selectedItems.AnchorPoint = Vector2.new(0, 0.5)
-				CreateRounded(selectedItems, 999)
-				
-				item.MouseButton1Click:Connect(function()
-					callback(item.Text)
-					activeItem = item.Text
-					selectItems.Text = "   " .. item.Text
-					
-					for _, child in pairs(dropScroll:GetChildren()) do
-						if child:IsA("TextButton") then
-							local sel = child:FindFirstChild("SelectedItems")
-							if child.Text == activeItem then
-								child.BackgroundTransparency = 0.8
-								child.TextTransparency = 0
-								if sel then sel.BackgroundTransparency = 0 end
-							else
-								child.BackgroundTransparency = 1
-								child.TextTransparency = 0.5
-								if sel then sel.BackgroundTransparency = 1 end
-							end
-						end
-					end
-				end)
-			end
-			
-			function dropfunc:Clear()
-				selectItems.Text = "   Select Items"
-				isdropping = false
-				dropdownFrameScroll.Visible = false
-				
-				for _, v in pairs(dropScroll:GetChildren()) do
-					if v:IsA("TextButton") then
-						v:Destroy()
-					end
-				end
-			end
-			
-			return dropfunc
-		end
-		
-		-- Slider Component
-		function main:Slider(text, min, max, set, callback)
-			local value = set or min
-			
-			local slider = Instance.new("Frame")
-			slider.Name = "Slider"
-			slider.Parent = mainFramePage
-			slider.BackgroundTransparency = 1
-			slider.Size = UDim2.new(1, 0, 0, 50)
-			
-			local sliderr = Instance.new("Frame")
-			sliderr.Parent = slider
-			sliderr.BackgroundColor3 = _G.Primary
-			sliderr.BackgroundTransparency = 0.8
-			sliderr.Size = UDim2.new(1, 0, 1, 0)
-			CreateRounded(sliderr, 5)
-			
-			local title = Instance.new("TextLabel")
-			title.Parent = sliderr
-			title.BackgroundTransparency = 1
-			title.Position = UDim2.new(0, 15, 0, 8)
-			title.Size = UDim2.new(1, -100, 0, 20)
-			title.Font = Enum.Font.Cartoon
-			title.Text = text
-			title.TextColor3 = Color3.fromRGB(255, 255, 255)
-			title.TextSize = 15
-			title.TextXAlignment = Enum.TextXAlignment.Left
-			
-			-- TextBox để nhập số (màu đen hơn)
-			local valueBox = Instance.new("TextBox")
-			valueBox.Parent = sliderr
-			valueBox.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-			valueBox.BackgroundTransparency = 0
-			valueBox.BorderSizePixel = 0
-			valueBox.Position = UDim2.new(1, -65, 0, 5)
-			valueBox.AnchorPoint = Vector2.new(0, 0)
-			valueBox.Size = UDim2.new(0, 55, 0, 22)
-			valueBox.Font = Enum.Font.GothamBold
-			valueBox.Text = tostring(set)
-			valueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-			valueBox.TextSize = 13
-			valueBox.ClearTextOnFocus = false
-			CreateRounded(valueBox, 4)
-			
-			local barContainer = Instance.new("Frame")
-			barContainer.Parent = sliderr
-			barContainer.BackgroundTransparency = 1
-			barContainer.Position = UDim2.new(0, 15, 1, -20)
-			barContainer.Size = UDim2.new(1, -30, 0, 15)
-			
-			local bar = Instance.new("Frame")
-			bar.Parent = barContainer
-			bar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-			bar.BackgroundTransparency = 0.8
-			bar.Position = UDim2.new(0, 0, 0.5, 0)
-			bar.AnchorPoint = Vector2.new(0, 0.5)
-			bar.Size = UDim2.new(1, 0, 0, 4)
-			CreateRounded(bar, 5)
-			
-			local bar1 = Instance.new("Frame")
-			bar1.Parent = bar
-			bar1.BackgroundColor3 = _G.Third
-			bar1.Size = UDim2.new((set - min) / (max - min), 0, 1, 0)
-			CreateRounded(bar1, 5)
-			
-			local circlebar = Instance.new("Frame")
-			circlebar.Parent = bar1
-			circlebar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-			circlebar.Position = UDim2.new(1, 0, 0.5, 0)
-			circlebar.AnchorPoint = Vector2.new(0.5, 0.5)
-			circlebar.Size = UDim2.new(0, 15, 0, 15)
-			CreateRounded(circlebar, 100)
-			
-			local function updateValue(newValue)
-				newValue = math.clamp(tonumber(newValue) or min, min, max)
-				value = newValue
-				valueBox.Text = tostring(value)
-				local percentage = (value - min) / (max - min)
-				bar1.Size = UDim2.new(percentage, 0, 1, 0)
-				pcall(callback, value)
-			end
-			
-			-- TextBox input
-			valueBox.FocusLost:Connect(function(enterPressed)
-				local inputValue = tonumber(valueBox.Text)
-				if inputValue then
-					updateValue(inputValue)
-				else
-					valueBox.Text = tostring(value)
-				end
-			end)
-			
-			local dragging = false
-			
-			circlebar.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-				   input.UserInputType == Enum.UserInputType.Touch then
-					dragging = true
-				end
-			end)
-			
-			bar.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-				   input.UserInputType == Enum.UserInputType.Touch then
-					dragging = true
-				end
-			end)
-			
-			UserInputService.InputEnded:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-				   input.UserInputType == Enum.UserInputType.Touch then
-					dragging = false
-				end
-			end)
-			
-			UserInputService.InputChanged:Connect(function(input)
-				if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
-				   input.UserInputType == Enum.UserInputType.Touch) then
-					local percentage = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-					local newValue = math.floor(min + (max - min) * percentage)
-					updateValue(newValue)
-				end
-			end)
-		end
-		
-		-- Textbox Component
-		function main:Textbox(text, disappear, callback)
-			local textbox = Instance.new("Frame")
-			textbox.Name = "Textbox"
-			textbox.Parent = mainFramePage
-			textbox.BackgroundColor3 = _G.Primary
-			textbox.BackgroundTransparency = 0.8
-			textbox.Size = UDim2.new(1, 0, 0, 35)
-			CreateRounded(textbox, 5)
-			
-			local textboxLabel = Instance.new("TextLabel")
-			textboxLabel.Parent = textbox
-			textboxLabel.BackgroundTransparency = 1
-			textboxLabel.Position = UDim2.new(0, 15, 0.5, 0)
-			textboxLabel.AnchorPoint = Vector2.new(0, 0.5)
-			textboxLabel.Size = UDim2.new(1, 0, 0, 35)
-			textboxLabel.Font = Enum.Font.Nunito
-			textboxLabel.Text = text
-			textboxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-			textboxLabel.TextSize = 15
-			textboxLabel.TextXAlignment = Enum.TextXAlignment.Left
-			
-			local realTextbox = Instance.new("TextBox")
-			realTextbox.Parent = textbox
-			realTextbox.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-			realTextbox.BackgroundTransparency = 0.8
-			realTextbox.Position = UDim2.new(1, -5, 0.5, 0)
-			realTextbox.AnchorPoint = Vector2.new(1, 0.5)
-			realTextbox.Size = UDim2.new(0, 80, 0, 25)
-			realTextbox.Font = Enum.Font.Gotham
-			realTextbox.Text = ""
-			realTextbox.TextColor3 = Color3.fromRGB(225, 225, 225)
-			realTextbox.TextSize = 11
-			realTextbox.ClipsDescendants = true
-			CreateRounded(realTextbox, 5)
-			
-			realTextbox.FocusLost:Connect(function()
-				callback(realTextbox.Text)
-			end)
-		end
-		
-		-- Label Component
-		function main:Label(text)
-			local frame = Instance.new("Frame")
-			frame.Name = "Frame"
-			frame.Parent = mainFramePage
-			frame.BackgroundTransparency = 1
-			frame.Size = UDim2.new(1, 0, 0, 30)
-			
-			local label = Instance.new("TextLabel")
-			label.Parent = frame
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 30, 0.5, 0)
-			label.AnchorPoint = Vector2.new(0, 0.5)
-			label.Size = UDim2.new(1, -30, 0, 30)
-			label.Font = Enum.Font.Nunito
-			label.Text = text
-			label.TextColor3 = Color3.fromRGB(225, 225, 225)
-			label.TextSize = 15
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			
-			local imageLabel = Instance.new("ImageLabel")
-			imageLabel.Parent = frame
-			imageLabel.BackgroundTransparency = 1
-			imageLabel.Position = UDim2.new(0, 10, 0.5, 0)
-			imageLabel.AnchorPoint = Vector2.new(0, 0.5)
-			imageLabel.Size = UDim2.new(0, 14, 0, 14)
-			imageLabel.Image = "rbxassetid://10723415903"
-			imageLabel.ImageColor3 = Color3.fromRGB(200, 200, 200)
-			
-			local labelfunc = {}
-			
-			function labelfunc:Set(newtext)
-				label.Text = newtext
-			end
-			
-			return labelfunc
-		end
-		
-		-- Separator Component
-		function main:Seperator(text)
-			local seperator = Instance.new("Frame")
-			seperator.Name = "Seperator"
-			seperator.Parent = mainFramePage
-			seperator.BackgroundTransparency = 1
-			seperator.Size = UDim2.new(1, 0, 0, 36)
-			
-			local sep1 = Instance.new("TextLabel")
-			sep1.Parent = seperator
-			sep1.BackgroundTransparency = 1
-			sep1.Position = UDim2.new(0, 0, 0.5, 0)
-			sep1.AnchorPoint = Vector2.new(0, 0.5)
-			sep1.Size = UDim2.new(0, 20, 0, 36)
-			sep1.Font = Enum.Font.GothamBold
-			sep1.RichText = true
-			sep1.Text = '《<font color="rgb(255, 0, 0)">《</font>'
-			sep1.TextColor3 = Color3.fromRGB(255, 255, 255)
-			sep1.TextSize = 14
-			
-			local sep2 = Instance.new("TextLabel")
-			sep2.Parent = seperator
-			sep2.BackgroundTransparency = 1
-			sep2.Position = UDim2.new(0.5, 0, 0.5, 0)
-			sep2.AnchorPoint = Vector2.new(0.5, 0.5)
-			sep2.Size = UDim2.new(1, 0, 0, 36)
-			sep2.Font = Enum.Font.GothamBold
-			sep2.Text = text
-			sep2.TextColor3 = Color3.fromRGB(255, 255, 255)
-			sep2.TextSize = 14
-			
-			local sep3 = Instance.new("TextLabel")
-			sep3.Parent = seperator
-			sep3.BackgroundTransparency = 1
-			sep3.Position = UDim2.new(1, 0, 0.5, 0)
-			sep3.AnchorPoint = Vector2.new(1, 0.5)
-			sep3.Size = UDim2.new(0, 20, 0, 36)
-			sep3.Font = Enum.Font.GothamBold
-			sep3.RichText = true
-			sep3.Text = '<font color="rgb(255, 0, 0)">》</font>》'
-			sep3.TextColor3 = Color3.fromRGB(255, 255, 255)
-			sep3.TextSize = 14
-		end
-		
-		-- Line Component
-		function main:Line()
-			local linee = Instance.new("Frame")
-			linee.Name = "Linee"
-			linee.Parent = mainFramePage
-			linee.BackgroundTransparency = 1
-			linee.Size = UDim2.new(1, 0, 0, 20)
-			
-			local line = Instance.new("Frame")
-			line.Parent = linee
-			line.BackgroundColor3 = Color3.new(0.49, 0.49, 0.49)
-			line.BorderSizePixel = 0
-			line.Position = UDim2.new(0, 0, 0, 10)
-			line.Size = UDim2.new(1, 0, 0, 1)
-			
-			local gradient = Instance.new("UIGradient")
-			gradient.Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, _G.Dark),
-				ColorSequenceKeypoint.new(0.4, _G.Primary),
-				ColorSequenceKeypoint.new(0.5, _G.Primary),
-				ColorSequenceKeypoint.new(0.6, _G.Primary),
-				ColorSequenceKeypoint.new(1, _G.Dark)
-			})
-			gradient.Parent = line
-		end
+        -- Dropdown Component
+        function main:Dropdown(text, option, var, callback)
+            local isdropping = false
+            local activeItem = var
+            
+            local dropdown = Instance.new("Frame")
+            dropdown.Name = "Dropdown"
+            dropdown.Parent = mainFramePage
+            dropdown.BackgroundColor3 = _G.Primary
+            dropdown.BackgroundTransparency = 0.8
+            dropdown.Size = UDim2.new(1, 0, 0, 40)
+            CreateRounded(dropdown, CONSTANTS.CORNER_RADIUS.SMALL)
+            
+            local dropTitle = Instance.new("TextLabel")
+            dropTitle.Parent = dropdown
+            dropTitle.BackgroundTransparency = 1
+            dropTitle.Position = UDim2.new(0, 15, 0, 5)
+            dropTitle.Size = UDim2.new(1, 0, 0, 30)
+            dropTitle.Font = Enum.Font.Cartoon
+            dropTitle.Text = text
+            dropTitle.TextColor3 = CONSTANTS.COLORS.WHITE
+            dropTitle.TextSize = 15
+            dropTitle.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local selectItems = Instance.new("TextButton")
+            selectItems.Parent = dropdown
+            selectItems.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
+            selectItems.Position = UDim2.new(1, -5, 0, 5)
+            selectItems.AnchorPoint = Vector2.new(1, 0)
+            selectItems.Size = UDim2.new(0, 100, 0, 30)
+            selectItems.Font = Enum.Font.GothamMedium
+            selectItems.Text = "   " .. (var or "Select Items")
+            selectItems.TextColor3 = CONSTANTS.COLORS.WHITE
+            selectItems.TextSize = 9
+            selectItems.TextXAlignment = Enum.TextXAlignment.Left
+            selectItems.AutoButtonColor = false
+            CreateRounded(selectItems, 5)
+            
+            local arrowDown = Instance.new("ImageLabel")
+            arrowDown.Parent = dropdown
+            arrowDown.BackgroundTransparency = 1
+            arrowDown.Position = UDim2.new(1, -110, 0, 10)
+            arrowDown.AnchorPoint = Vector2.new(1, 0)
+            arrowDown.Size = UDim2.new(0, 20, 0, 20)
+            arrowDown.Image = "rbxassetid://10709790948"
+            arrowDown.ImageColor3 = CONSTANTS.COLORS.WHITE
+            
+            local dropdownFrameScroll = Instance.new("Frame")
+            dropdownFrameScroll.Parent = dropdown
+            dropdownFrameScroll.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
+            dropdownFrameScroll.Position = UDim2.new(0, 5, 0, 40)
+            dropdownFrameScroll.Size = UDim2.new(1, -10, 0, 0)
+            dropdownFrameScroll.Visible = false
+            dropdownFrameScroll.ClipsDescendants = true
+            CreateRounded(dropdownFrameScroll, 5)
+            
+            local dropScroll = Instance.new("ScrollingFrame")
+            dropScroll.Parent = dropdownFrameScroll
+            dropScroll.BackgroundTransparency = 1
+            dropScroll.Position = UDim2.new(0, 0, 0, 10)
+            dropScroll.Size = UDim2.new(1, 0, 0, 80)
+            dropScroll.ScrollBarThickness = 3
+            
+            local uiListLayout = Instance.new("UIListLayout")
+            uiListLayout.Parent = dropScroll
+            uiListLayout.Padding = UDim.new(0, 1)
+            
+            local padding = Instance.new("UIPadding")
+            padding.Parent = dropScroll
+            padding.PaddingLeft = UDim.new(0, 10)
+            padding.PaddingRight = UDim.new(0, 10)
+            
+            for _, v in pairs(option) do
+                local item = Instance.new("TextButton")
+                item.Parent = dropScroll
+                item.BackgroundColor3 = _G.Primary
+                item.BackgroundTransparency = 1
+                item.Size = UDim2.new(1, 0, 0, 30)
+                item.Font = Enum.Font.Nunito
+                item.Text = tostring(v)
+                item.TextColor3 = CONSTANTS.COLORS.WHITE
+                item.TextSize = 13
+                item.TextTransparency = 0.5
+                item.TextXAlignment = Enum.TextXAlignment.Left
+                item.AutoButtonColor = false
+                CreateRounded(item, 5)
+                
+                local itemPadding = Instance.new("UIPadding")
+                itemPadding.Parent = item
+                itemPadding.PaddingLeft = UDim.new(0, 8)
+                
+                local selectedItems = Instance.new("Frame")
+                selectedItems.Name = "SelectedItems"
+                selectedItems.Parent = item
+                selectedItems.BackgroundColor3 = _G.Third
+                selectedItems.BackgroundTransparency = 1
+                selectedItems.Size = UDim2.new(0, 3, 0.4, 0)
+                selectedItems.Position = UDim2.new(0, -8, 0.5, 0)
+                selectedItems.AnchorPoint = Vector2.new(0, 0.5)
+                CreateRounded(selectedItems, 999)
+                
+                if var and tostring(v) == var then
+                    item.BackgroundTransparency = 0.8
+                    item.TextTransparency = 0
+                    selectedItems.BackgroundTransparency = 0
+                end
+                
+                item.MouseButton1Click:Connect(function()
+                    callback(item.Text)
+                    activeItem = item.Text
+                    selectItems.Text = "   " .. item.Text
+                    
+                    for _, child in pairs(dropScroll:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            local sel = child:FindFirstChild("SelectedItems")
+                            if child.Text == activeItem then
+                                child.BackgroundTransparency = 0.8
+                                child.TextTransparency = 0
+                                if sel then sel.BackgroundTransparency = 0 end
+                            else
+                                child.BackgroundTransparency = 1
+                                child.TextTransparency = 0.5
+                                if sel then sel.BackgroundTransparency = 1 end
+                            end
+                        end
+                    end
+                end)
+            end
+            
+            dropScroll.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y)
+            
+            selectItems.MouseButton1Click:Connect(function()
+                isdropping = not isdropping
+                
+                if isdropping then
+                    TweenService:Create(dropdownFrameScroll, TweenInfo.new(0.3), {
+                        Size = UDim2.new(1, -10, 0, 100),
+                        Visible = true
+                    }):Play()
+                    TweenService:Create(dropdown, TweenInfo.new(0.3), {
+                        Size = UDim2.new(1, 0, 0, 145)
+                    }):Play()
+                    TweenService:Create(arrowDown, TweenInfo.new(0.3), {Rotation = 180}):Play()
+                else
+                    TweenService:Create(dropdownFrameScroll, TweenInfo.new(0.3), {
+                        Size = UDim2.new(1, -10, 0, 0),
+                        Visible = false
+                    }):Play()
+                    TweenService:Create(dropdown, TweenInfo.new(0.3), {
+                        Size = UDim2.new(1, 0, 0, 40)
+                    }):Play()
+                    TweenService:Create(arrowDown, TweenInfo.new(0.3), {Rotation = 0}):Play()
+                end
+            end)
+            
+            local dropfunc = {}
+            
+            function dropfunc:Add(t)
+                local item = Instance.new("TextButton")
+                item.Parent = dropScroll
+                item.BackgroundColor3 = _G.Primary
+                item.BackgroundTransparency = 1
+                item.Size = UDim2.new(1, 0, 0, 30)
+                item.Font = Enum.Font.Nunito
+                item.Text = tostring(t)
+                item.TextColor3 = CONSTANTS.COLORS.WHITE
+                item.TextSize = 13
+                item.TextTransparency = 0.5
+                item.TextXAlignment = Enum.TextXAlignment.Left
+                item.AutoButtonColor = false
+                CreateRounded(item, 5)
+                
+                local itemPadding = Instance.new("UIPadding")
+                itemPadding.Parent = item
+                itemPadding.PaddingLeft = UDim.new(0, 8)
+                
+                local selectedItems = Instance.new("Frame")
+                selectedItems.Name = "SelectedItems"
+                selectedItems.Parent = item
+                selectedItems.BackgroundColor3 = _G.Third
+                selectedItems.BackgroundTransparency = 1
+                selectedItems.Size = UDim2.new(0, 3, 0.4, 0)
+                selectedItems.Position = UDim2.new(0, -8, 0.5, 0)
+                selectedItems.AnchorPoint = Vector2.new(0, 0.5)
+                CreateRounded(selectedItems, 999)
+                
+                item.MouseButton1Click:Connect(function()
+                    callback(item.Text)
+                    activeItem = item.Text
+                    selectItems.Text = "   " .. item.Text
+                    
+                    for _, child in pairs(dropScroll:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            local sel = child:FindFirstChild("SelectedItems")
+                            if child.Text == activeItem then
+                                child.BackgroundTransparency = 0.8
+                                child.TextTransparency = 0
+                                if sel then sel.BackgroundTransparency = 0 end
+                            else
+                                child.BackgroundTransparency = 1
+                                child.TextTransparency = 0.5
+                                if sel then sel.BackgroundTransparency = 1 end
+                            end
+                        end
+                    end
+                end)
+            end
+            
+            function dropfunc:Clear()
+                selectItems.Text = "   Select Items"
+                isdropping = false
+                dropdownFrameScroll.Visible = false
+                
+                for _, v in pairs(dropScroll:GetChildren()) do
+                    if v:IsA("TextButton") then
+                        v:Destroy()
+                    end
+                end
+            end
+            
+            return dropfunc
+        end
+        
+        -- Slider Component
+        function main:Slider(text, min, max, set, callback)
+            local value = set or min
+            
+            local slider = Instance.new("Frame")
+            slider.Name = "Slider"
+            slider.Parent = mainFramePage
+            slider.BackgroundTransparency = 1
+            slider.Size = UDim2.new(1, 0, 0, 50)
+            
+            local sliderr = Instance.new("Frame")
+            sliderr.Parent = slider
+            sliderr.BackgroundColor3 = _G.Primary
+            sliderr.BackgroundTransparency = 0.8
+            sliderr.Size = UDim2.new(1, 0, 1, 0)
+            CreateRounded(sliderr, CONSTANTS.CORNER_RADIUS.SMALL)
+            
+            local title = Instance.new("TextLabel")
+            title.Parent = sliderr
+            title.BackgroundTransparency = 1
+            title.Position = UDim2.new(0, 15, 0, 8)
+            title.Size = UDim2.new(1, -100, 0, 20)
+            title.Font = Enum.Font.Cartoon
+            title.Text = text
+            title.TextColor3 = CONSTANTS.COLORS.WHITE
+            title.TextSize = 15
+            title.TextXAlignment = Enum.TextXAlignment.Left
+            
+            -- TextBox để nhập số
+            local valueBox = Instance.new("TextBox")
+            valueBox.Parent = sliderr
+            valueBox.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            valueBox.BackgroundTransparency = 0
+            valueBox.BorderSizePixel = 0
+            valueBox.Position = UDim2.new(1, -65, 0, 5)
+            valueBox.AnchorPoint = Vector2.new(0, 0)
+            valueBox.Size = UDim2.new(0, 55, 0, 22)
+            valueBox.Font = Enum.Font.GothamBold
+            valueBox.Text = tostring(set)
+            valueBox.TextColor3 = CONSTANTS.COLORS.WHITE
+            valueBox.TextSize = 13
+            valueBox.ClearTextOnFocus = false
+            CreateRounded(valueBox, 4)
+            
+            local barContainer = Instance.new("Frame")
+            barContainer.Parent = sliderr
+            barContainer.BackgroundTransparency = 1
+            barContainer.Position = UDim2.new(0, 15, 1, -20)
+            barContainer.Size = UDim2.new(1, -30, 0, 15)
+            
+            local bar = Instance.new("Frame")
+            bar.Parent = barContainer
+            bar.BackgroundColor3 = CONSTANTS.COLORS.PRIMARY
+            bar.BackgroundTransparency = 0.5
+            bar.Position = UDim2.new(0, 0, 0.5, 0)
+            bar.AnchorPoint = Vector2.new(0, 0.5)
+            bar.Size = UDim2.new(1, 0, 0, 4)
+            CreateRounded(bar, 5)
+            
+            local bar1 = Instance.new("Frame")
+            bar1.Parent = bar
+            bar1.BackgroundColor3 = _G.Third
+            bar1.Size = UDim2.new((set - min) / (max - min), 0, 1, 0)
+            CreateRounded(bar1, 5)
+            
+            local circlebar = Instance.new("Frame")
+            circlebar.Parent = bar1
+            circlebar.BackgroundColor3 = CONSTANTS.COLORS.WHITE
+            circlebar.Position = UDim2.new(1, 0, 0.5, 0)
+            circlebar.AnchorPoint = Vector2.new(0.5, 0.5)
+            circlebar.Size = UDim2.new(0, 15, 0, 15)
+            CreateRounded(circlebar, 100)
+            
+            local function updateValue(newValue)
+                newValue = math.clamp(tonumber(newValue) or min, min, max)
+                value = newValue
+                valueBox.Text = tostring(value)
+                local percentage = (value - min) / (max - min)
+                bar1.Size = UDim2.new(percentage, 0, 1, 0)
+                pcall(callback, value)
+            end
+            
+            -- TextBox input
+            valueBox.FocusLost:Connect(function(enterPressed)
+                local inputValue = tonumber(valueBox.Text)
+                if inputValue then
+                    updateValue(inputValue)
+                else
+                    valueBox.Text = tostring(value)
+                end
+            end)
+            
+            local dragging = false
+            
+            circlebar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+                   input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                end
+            end)
+            
+            bar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+                   input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+                   input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+                   input.UserInputType == Enum.UserInputType.Touch) then
+                    local percentage = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                    local newValue = math.floor(min + (max - min) * percentage)
+                    updateValue(newValue)
+                end
+            end)
+        end
+        
+        -- Textbox Component
+        function main:Textbox(text, disappear, callback)
+            local textbox = Instance.new("Frame")
+            textbox.Name = "Textbox"
+            textbox.Parent = mainFramePage
+            textbox.BackgroundColor3 = _G.Primary
+            textbox.BackgroundTransparency = 0.8
+            textbox.Size = UDim2.new(1, 0, 0, 35)
+            CreateRounded(textbox, CONSTANTS.CORNER_RADIUS.SMALL)
+            
+            local textboxLabel = Instance.new("TextLabel")
+            textboxLabel.Parent = textbox
+            textboxLabel.BackgroundTransparency = 1
+            textboxLabel.Position = UDim2.new(0, 15, 0.5, 0)
+            textboxLabel.AnchorPoint = Vector2.new(0, 0.5)
+            textboxLabel.Size = UDim2.new(1, 0, 0, 35)
+            textboxLabel.Font = Enum.Font.Nunito
+            textboxLabel.Text = text
+            textboxLabel.TextColor3 = CONSTANTS.COLORS.WHITE
+            textboxLabel.TextSize = 15
+            textboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local realTextbox = Instance.new("TextBox")
+            realTextbox.Parent = textbox
+            realTextbox.BackgroundColor3 = CONSTANTS.COLORS.PRIMARY
+            realTextbox.BackgroundTransparency = 0.5
+            realTextbox.Position = UDim2.new(1, -5, 0.5, 0)
+            realTextbox.AnchorPoint = Vector2.new(1, 0.5)
+            realTextbox.Size = UDim2.new(0, 80, 0, 25)
+            realTextbox.Font = Enum.Font.Gotham
+            realTextbox.Text = ""
+            realTextbox.TextColor3 = CONSTANTS.COLORS.WHITE
+            realTextbox.TextSize = 11
+            realTextbox.ClipsDescendants = true
+            CreateRounded(realTextbox, 5)
+            
+            realTextbox.FocusLost:Connect(function()
+                pcall(callback, realTextbox.Text)
+            end)
+        end
+        
+        -- Label Component
+        function main:Label(text)
+            local frame = Instance.new("Frame")
+            frame.Name = "Frame"
+            frame.Parent = mainFramePage
+            frame.BackgroundTransparency = 1
+            frame.Size = UDim2.new(1, 0, 0, 30)
+            
+            local label = Instance.new("TextLabel")
+            label.Parent = frame
+            label.BackgroundTransparency = 1
+            label.Position = UDim2.new(0, 30, 0.5, 0)
+            label.AnchorPoint = Vector2.new(0, 0.5)
+            label.Size = UDim2.new(1, -30, 0, 30)
+            label.Font = Enum.Font.Nunito
+            label.Text = text
+            label.TextColor3 = CONSTANTS.COLORS.WHITE
+            label.TextSize = 15
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local imageLabel = Instance.new("ImageLabel")
+            imageLabel.Parent = frame
+            imageLabel.BackgroundTransparency = 1
+            imageLabel.Position = UDim2.new(0, 10, 0.5, 0)
+            imageLabel.AnchorPoint = Vector2.new(0, 0.5)
+            imageLabel.Size = UDim2.new(0, 14, 0, 14)
+            imageLabel.Image = "rbxassetid://10723415903"
+            imageLabel.ImageColor3 = CONSTANTS.COLORS.GRAY
+            
+            local labelfunc = {}
+            
+            function labelfunc:Set(newtext)
+                label.Text = newtext
+            end
+            
+            return labelfunc
+        end
+        
+        -- Separator Component
+        function main:Seperator(text)
+            local seperator = Instance.new("Frame")
+            seperator.Name = "Seperator"
+            seperator.Parent = mainFramePage
+            seperator.BackgroundTransparency = 1
+            seperator.Size = UDim2.new(1, 0, 0, 36)
+            
+            local sep1 = Instance.new("TextLabel")
+            sep1.Parent = seperator
+            sep1.BackgroundTransparency = 1
+            sep1.Position = UDim2.new(0, 0, 0.5, 0)
+            sep1.AnchorPoint = Vector2.new(0, 0.5)
+            sep1.Size = UDim2.new(0, 20, 0, 36)
+            sep1.Font = Enum.Font.GothamBold
+            sep1.RichText = true
+            sep1.Text = '《<font color="rgb(255, 0, 0)">《</font>'
+            sep1.TextColor3 = CONSTANTS.COLORS.WHITE
+            sep1.TextSize = 14
+            
+            local sep2 = Instance.new("TextLabel")
+            sep2.Parent = seperator
+            sep2.BackgroundTransparency = 1
+            sep2.Position = UDim2.new(0.5, 0, 0.5, 0)
+            sep2.AnchorPoint = Vector2.new(0.5, 0.5)
+            sep2.Size = UDim2.new(1, 0, 0, 36)
+            sep2.Font = Enum.Font.GothamBold
+            sep2.Text = text
+            sep2.TextColor3 = CONSTANTS.COLORS.WHITE
+            sep2.TextSize = 14
+            
+            local sep3 = Instance.new("TextLabel")
+            sep3.Parent = seperator
+            sep3.BackgroundTransparency = 1
+            sep3.Position = UDim2.new(1, 0, 0.5, 0)
+            sep3.AnchorPoint = Vector2.new(1, 0.5)
+            sep3.Size = UDim2.new(0, 20, 0, 36)
+            sep3.Font = Enum.Font.GothamBold
+            sep3.RichText = true
+            sep3.Text = '<font color="rgb(255, 0, 0)">》</font>》'
+            sep3.TextColor3 = CONSTANTS.COLORS.WHITE
+            sep3.TextSize = 14
+        end
+        
+        -- Line Component
+        function main:Line()
+            local linee = Instance.new("Frame")
+            linee.Name = "Linee"
+            linee.Parent = mainFramePage
+            linee.BackgroundTransparency = 1
+            linee.Size = UDim2.new(1, 0, 0, 20)
+            
+            local line = Instance.new("Frame")
+            line.Parent = linee
+            line.BackgroundColor3 = CONSTANTS.COLORS.PRIMARY
+            line.BorderSizePixel = 0
+            line.Position = UDim2.new(0, 0, 0, 10)
+            line.Size = UDim2.new(1, 0, 0, 1)
+            
+            local gradient = Instance.new("UIGradient")
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, _G.Dark),
+                ColorSequenceKeypoint.new(0.4, _G.Primary),
+                ColorSequenceKeypoint.new(0.5, _G.Primary),
+                ColorSequenceKeypoint.new(0.6, _G.Primary),
+                ColorSequenceKeypoint.new(1, _G.Dark)
+            })
+            gradient.Parent = line
+        end
+        
+        return main
+    end
     
     return uitab
 end
 
+-- Return the Update table
 return Update
