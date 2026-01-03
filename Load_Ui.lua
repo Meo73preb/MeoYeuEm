@@ -193,6 +193,8 @@ end
 --------------------------------------------------------------------------------
 -- MAIN WINDOW
 --------------------------------------------------------------------------------
+-- Thay thế từ dòng function Library:Window(config) trở xuống
+
 function Library:Window(config)
 	local WindowConfig = config or {}
 	WindowConfig.Title = WindowConfig.Title or "Vicat Hub"
@@ -261,7 +263,7 @@ function Library:Window(config)
 	TopBar.BorderSizePixel = 0
 	CreateCorner(TopBar, 8)
 	
-	-- Che góc bo dưới của topbar để liền mạch với body
+	-- Che góc bo dưới
 	local TopBarFix = Instance.new("Frame")
 	TopBarFix.Parent = TopBar
 	TopBarFix.BackgroundColor3 = TopBar.BackgroundColor3
@@ -281,13 +283,12 @@ function Library:Window(config)
 	Title.TextSize = 16
 	Title.TextXAlignment = Enum.TextXAlignment.Left
 	
-	-- Control Buttons (Resize, Close)
 	local CloseBtn = Instance.new("ImageButton")
 	CloseBtn.Parent = TopBar
 	CloseBtn.AnchorPoint = Vector2.new(1, 0.5)
 	CloseBtn.Position = UDim2.new(1, -10, 0.5, 0)
 	CloseBtn.Size = UDim2.new(0, 20, 0, 20)
-	CloseBtn.Image = "rbxassetid://7743878857" -- X icon
+	CloseBtn.Image = "rbxassetid://7743878857"
 	CloseBtn.BackgroundTransparency = 1
 	CloseBtn.MouseButton1Click:Connect(function()
 		isVisible = false
@@ -300,10 +301,9 @@ function Library:Window(config)
 	ResizeBtn.AnchorPoint = Vector2.new(1, 0.5)
 	ResizeBtn.Position = UDim2.new(1, -40, 0.5, 0)
 	ResizeBtn.Size = UDim2.new(0, 20, 0, 20)
-	ResizeBtn.Image = "rbxassetid://10734886735" -- Resize icon
+	ResizeBtn.Image = "rbxassetid://10734886735"
 	ResizeBtn.BackgroundTransparency = 1
 	
-	-- [FIX 1] Resize Logic - Sử dụng Scale thay vì Offset để responsive
 	ResizeBtn.MouseButton1Click:Connect(function()
 		isFullscreen = not isFullscreen
 		if isFullscreen then
@@ -319,21 +319,18 @@ function Library:Window(config)
 		end
 	end)
 	
-	-- BODY CONTAINER
-	-- Sử dụng UIListLayout Horizontal để chia đôi: Left (Tab) và Right (Content)
+	-- BODY
 	local Body = Instance.new("Frame")
 	Body.Name = "Body"
 	Body.Parent = MainFrame
 	Body.BackgroundTransparency = 1
 	Body.Position = UDim2.new(0, 0, 0, Config.Sizes.TopBarHeight)
-	-- [FIX 1] Size tự động trừ đi chiều cao TopBar
 	Body.Size = UDim2.new(1, 0, 1, -Config.Sizes.TopBarHeight) 
 	
 	local TabContainer = Instance.new("Frame")
 	TabContainer.Name = "TabContainer"
 	TabContainer.Parent = Body
 	TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
-	-- [FIX 1] Width cố định, Height full
 	TabContainer.Size = UDim2.new(0, Config.Sizes.TabWidth, 1, 0)
 	TabContainer.BorderSizePixel = 0
 	
@@ -343,28 +340,22 @@ function Library:Window(config)
 	TabScroll.Size = UDim2.new(1, 0, 1, -10)
 	TabScroll.Position = UDim2.new(0, 0, 0, 10)
 	TabScroll.ScrollBarThickness = 2
+	TabScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- FIX: Auto resize
+	TabScroll.CanvasSize = UDim2.new(0,0,0,0)
 	
 	local TabListLayout = Instance.new("UIListLayout")
 	TabListLayout.Parent = TabScroll
 	TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	TabListLayout.Padding = UDim.new(0, 5)
 	
-	AutoCanvasSize(TabScroll, TabListLayout)
-	
-	-- PAGE CONTAINER
+	-- PAGE CONTAINER (Đã bỏ Folder đi để tránh lỗi)
 	local PageContainer = Instance.new("Frame")
 	PageContainer.Name = "PageContainer"
 	PageContainer.Parent = Body
 	PageContainer.BackgroundTransparency = 1
 	PageContainer.ClipsDescendants = true
-	-- [FIX 1] Tính toán vị trí: Nằm bên phải TabContainer
 	PageContainer.Position = UDim2.new(0, Config.Sizes.TabWidth, 0, 0)
-	-- [FIX 1] Kích thước: Full chiều rộng trừ đi TabContainer
 	PageContainer.Size = UDim2.new(1, -Config.Sizes.TabWidth, 1, 0)
-	
-	local PagesFolder = Instance.new("Folder")
-	PagesFolder.Name = "Pages"
-	PagesFolder.Parent = PageContainer
 	
 	-- TAB SYSTEM
 	local Tabs = {}
@@ -413,12 +404,15 @@ function Library:Window(config)
 		-- Create Page
 		local Page = Instance.new("ScrollingFrame")
 		Page.Name = name .. "_Page"
-		Page.Parent = PagesFolder
+		Page.Parent = PageContainer -- FIX: Parent trực tiếp vào Frame, không qua Folder
 		Page.BackgroundTransparency = 1
 		Page.Size = UDim2.new(1, 0, 1, 0)
 		Page.Visible = false
 		Page.ScrollBarThickness = 3
 		Page.ScrollBarImageColor3 = Config.Colors.Accent
+		-- FIX QUAN TRỌNG: Tự động tính toán chiều cao nội dung
+		Page.AutomaticCanvasSize = Enum.AutomaticSize.Y 
+		Page.CanvasSize = UDim2.new(0,0,0,0) 
 		
 		local PageLayout = Instance.new("UIListLayout")
 		PageLayout.Parent = Page
@@ -432,12 +426,9 @@ function Library:Window(config)
 		PagePadding.PaddingRight = UDim.new(0, 10)
 		PagePadding.PaddingBottom = UDim.new(0, 10)
 		
-		AutoCanvasSize(Page, PageLayout)
-		
 		local function Activate()
 			if CurrentPage == Page then return end
 			
-			-- Deactivate old
 			for _, btn in pairs(TabScroll:GetChildren()) do
 				if btn:IsA("TextButton") then
 					TweenService:Create(btn.TextLabel, TweenInfo.new(0.2), {TextColor3 = Config.Colors.TextDim}):Play()
@@ -446,28 +437,25 @@ function Library:Window(config)
 				end
 			end
 			
-			for _, p in pairs(PagesFolder:GetChildren()) do
-				p.Visible = false
+			for _, p in pairs(PageContainer:GetChildren()) do
+				if p:IsA("ScrollingFrame") then p.Visible = false end
 			end
 			
-			-- Activate new
 			TweenService:Create(TabTitle, TweenInfo.new(0.2), {TextColor3 = Config.Colors.Text}):Play()
 			TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = Config.Colors.Text}):Play()
 			TweenService:Create(TabIndicator, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 			
 			Page.Visible = true
 			
-			-- [FIX 4] Smooth Page Animation
 			if Library.Settings.PageAnimation then
-				Page.CanvasPosition = Vector2.new(0, 10)
-				TweenService:Create(Page, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {CanvasPosition = Vector2.new(0, 0)}):Play()
-				
+				Page.CanvasPosition = Vector2.new(0, 0) -- Reset scroll khi qua tab mới
 				Page.BackgroundTransparency = 1
 				local fadeInfo = TweenInfo.new(0.3)
 				for _, element in pairs(Page:GetChildren()) do
 					if element:IsA("Frame") or element:IsA("TextButton") then
 						element.BackgroundTransparency = 1
-						TweenService:Create(element, fadeInfo, {BackgroundTransparency = (element:GetAttribute("TargetAlpha") or 0)}):Play()
+						local targetAlpha = element:GetAttribute("TargetAlpha") or 0
+						TweenService:Create(element, fadeInfo, {BackgroundTransparency = targetAlpha}):Play()
 					end
 				end
 			end
@@ -490,10 +478,10 @@ function Library:Window(config)
 			Button.Name = "Button"
 			Button.Parent = Page
 			Button.BackgroundColor3 = Config.Colors.Primary
-			Button.Size = UDim2.new(1, 0, 0, 38) -- [FIX 2] To hơn
+			Button.Size = UDim2.new(1, 0, 0, 38)
 			Button.AutoButtonColor = false
 			Button.Text = ""
-			Button:SetAttribute("TargetAlpha", 0) -- For animation
+			Button:SetAttribute("TargetAlpha", 0)
 			CreateCorner(Button, 6)
 			
 			local BtnTitle = Instance.new("TextLabel")
@@ -513,9 +501,8 @@ function Library:Window(config)
 			BtnIcon.AnchorPoint = Vector2.new(1, 0.5)
 			BtnIcon.Position = UDim2.new(1, -10, 0.5, 0)
 			BtnIcon.Size = UDim2.new(0, 20, 0, 20)
-			BtnIcon.Image = "rbxassetid://10734898355" -- Mouse Click Icon
+			BtnIcon.Image = "rbxassetid://10734898355"
 			
-			-- Button Logic
 			Button.MouseButton1Click:Connect(function()
 				TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Config.Colors.Accent}):Play()
 				task.wait(0.1)
@@ -613,7 +600,7 @@ function Library:Window(config)
 			ValueLabel.TextSize = 14
 			ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
 			
-			local SlideBg = Instance.new("TextButton") -- Dùng button để dễ bắt input
+			local SlideBg = Instance.new("TextButton")
 			SlideBg.Parent = SliderFrame
 			SlideBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 			SlideBg.Position = UDim2.new(0, 15, 0, 32)
