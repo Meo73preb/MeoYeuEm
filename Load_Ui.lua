@@ -995,7 +995,7 @@ function Update:Window(windowConfig)
 			
 			-- Button Component
 			function main:Button(text, callback)
-				return pcall(function()
+				pcall(function()
 					local button = Instance.new("Frame")
 					button.Name = "Button"
 					button.Parent = mainFramePage
@@ -1036,17 +1036,11 @@ function Update:Window(windowConfig)
 					
 					windowData.Connections:Add(textButton.MouseButton1Click:Connect(function()
 						pcall(callback)
-						
-						-- Click feedback animation
-						Utilities.SafeTween(textButton, TweenInfo.new(0.1), {
-							BackgroundColor3 = Config.Colors.Accent
-						})
+						Utilities.SafeTween(textButton, TweenInfo.new(0.1), {BackgroundColor3 = Config.Colors.Accent})
 						task.wait(0.1)
-						Utilities.SafeTween(textButton, TweenInfo.new(0.1), {
-							BackgroundColor3 = Config.Colors.Background.Darker
-						})
+						Utilities.SafeTween(textButton, TweenInfo.new(0.1), {BackgroundColor3 = Config.Colors.Background.Darker})
 					end))
-				end) and {} or {}
+				end)
 			end
 			
 			-- Toggle Component
@@ -1054,7 +1048,7 @@ function Update:Window(windowConfig)
 				config = config or false
 				local toggled = config
 				
-				return pcall(function()
+				pcall(function()
 					local button = Instance.new("TextButton")
 					button.Name = "Toggle"
 					button.Parent = mainFramePage
@@ -1065,21 +1059,21 @@ function Update:Window(windowConfig)
 					button.Size = UDim2.new(1, 0, 0, desc and 46 or 36)
 					Utilities.CreateRounded(button, Config.UI.Sizes.RoundedCorner.Medium)
 					
-					local title = Instance.new("TextLabel")
-					title.Parent = button
-					title.BackgroundTransparency = 1
-					title.Size = UDim2.new(1, 0, 0, 35)
-					title.Font = Enum.Font.Cartoon
-					title.Text = text
-					title.TextColor3 = Config.Colors.Text.Primary
-					title.TextSize = 15
-					title.TextXAlignment = Enum.TextXAlignment.Left
-					title.AnchorPoint = Vector2.new(0, 0.5)
-					title.Position = UDim2.new(0, 15, 0.5, desc and -5 or 0)
+					local titleLabel = Instance.new("TextLabel")
+					titleLabel.Parent = button
+					titleLabel.BackgroundTransparency = 1
+					titleLabel.Size = UDim2.new(1, 0, 0, 35)
+					titleLabel.Font = Enum.Font.Cartoon
+					titleLabel.Text = text
+					titleLabel.TextColor3 = Config.Colors.Text.Primary
+					titleLabel.TextSize = 15
+					titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+					titleLabel.AnchorPoint = Vector2.new(0, 0.5)
+					titleLabel.Position = UDim2.new(0, 15, 0.5, desc and -5 or 0)
 					
 					if desc then
 						local descLabel = Instance.new("TextLabel")
-						descLabel.Parent = title
+						descLabel.Parent = titleLabel
 						descLabel.BackgroundTransparency = 1
 						descLabel.Position = UDim2.new(0, 0, 0, 22)
 						descLabel.Size = UDim2.new(0, 280, 0, 16)
@@ -1117,7 +1111,6 @@ function Update:Window(windowConfig)
 					
 					windowData.Connections:Add(toggleImage.MouseButton1Click:Connect(function()
 						toggled = not toggled
-						
 						if toggled then
 							circle:TweenPosition(UDim2.new(0, 17, 0.5, 0), "Out", "Sine", 0.2, true)
 							Utilities.SafeTween(toggleImage, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
@@ -1131,14 +1124,11 @@ function Update:Window(windowConfig)
 								BackgroundTransparency = 0.8
 							})
 						end
-						
 						pcall(callback, toggled)
 					end))
 					
-					if config then
-						pcall(callback, toggled)
-					end
-				end) and {} or {}
+					if config then pcall(callback, toggled) end
+				end)
 			end
 			
 			-- Label Component
@@ -1183,7 +1173,7 @@ function Update:Window(windowConfig)
 			
 			-- Separator Component
 			function main:Seperator(text)
-				return pcall(function()
+				pcall(function()
 					local seperator = Instance.new("Frame")
 					seperator.Name = "Seperator"
 					seperator.Parent = mainFramePage
@@ -1224,12 +1214,12 @@ function Update:Window(windowConfig)
 					sep3.Text = '<font color="rgb(255, 0, 0)">》</font>》'
 					sep3.TextColor3 = Config.Colors.Text.Primary
 					sep3.TextSize = 14
-				end) and {} or {}
+				end)
 			end
 			
 			-- Line Component
 			function main:Line()
-				return pcall(function()
+				pcall(function()
 					local linee = Instance.new("Frame")
 					linee.Name = "Line"
 					linee.Parent = mainFramePage
@@ -1252,7 +1242,7 @@ function Update:Window(windowConfig)
 						ColorSequenceKeypoint.new(1, Config.Colors.Dark)
 					})
 					gradient.Parent = line
-				end) and {} or {}
+				end)
 			end
 			
 			return main
