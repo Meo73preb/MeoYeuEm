@@ -12,8 +12,8 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 
 -- Config
 local AttackConfig = {
-    Cooldown = 0.075,
-    MaxDistance = 30,
+    Cooldown = 0.15,
+    MaxDistance = 55,
     RandomDelay = true,
 }
 
@@ -121,12 +121,29 @@ local function GetRandomPartName()
     return VALID_PARTS[math.random(1, #VALID_PARTS)]
 end
 
+-- Hàm kiểm tra max enemies dựa vào HumanoidRootPart size
+local function GetMaxEnemies()
+    local root = Character and Character:FindFirstChild("HumanoidRootPart")
+    if not root then return 2 end
+    
+    -- Nếu HumanoidRootPart > 25 studs, có thể hit 12 enemies (Buddha form, v.v.)
+    local size = root.Size
+    local maxSize = math.max(size.X, size.Y, size.Z)
+    
+    if maxSize > 25 then
+        return 12
+    else
+        return 2
+    end
+end
+
 -- Hàm lấy enemies gần
 local function GetNearbyEnemies(maxDistance)
     local root = Character and Character:FindFirstChild("HumanoidRootPart")
     if not root then return {} end
     
     local enemies = {}
+    local maxEnemies = GetMaxEnemies()
     
     for _, folder in ipairs({workspace.Enemies, workspace.Characters}) do
         if not folder then continue end
@@ -155,7 +172,13 @@ local function GetNearbyEnemies(maxDistance)
         return a.distance < b.distance
     end)
     
-    return enemies
+    -- Giới hạn số lượng enemies (2 hoặc 12)
+    local limitedEnemies = {}
+    for i = 1, math.min(#enemies, maxEnemies) do
+        table.insert(limitedEnemies, enemies[i])
+    end
+    
+    return limitedEnemies
 end
 
 -- Hàm kiểm tra weapon
@@ -221,16 +244,7 @@ local function PerformAttack()
     
     local uniqueId = GenerateUniqueId()
     
-    -- CHỈ dùng 1 phương thức dựa vào game có dùng encrypted hay không
-    local success = pcall(function()
-        if hasEncrypted and encryptedRemote and encryptedId then
-            -- Game dùng encrypted remote
-            local success2, seed = pcall(function()
-                return Net.seed:InvokeServer()
-            end)
-            
-            if success2 and seed then
-                -- Encrypt tên remote
+ remote
                 local encryptedName = string.gsub("RE/RegisterHit", ".", function(c)
                     return string.char(
                         bit32.bxor(
@@ -241,7 +255,7 @@ local function PerformAttack()
                 end)
                 
                 local encryptedIdValue = bit32.bxor(encryptedId + 909090, seed * 2)
-                RegisterAttack:FireServer()
+                
                 -- CHỈ fire encrypted remote
                 encryptedRemote:FireServer(
                     encryptedName,
@@ -330,23 +344,13 @@ _G.SetAttackConfig = function(config)
 end
 
 _G.GetAttackConfig = function()
+    local maxEnemies = GetMaxEnemies()
     print("═══════════════════════════════════")
     print("Current Config:")
     for key, value in pairs(AttackConfig) do
         print("  " .. key .. ":", value)
     end
     print("Method:", hasEncrypted and "Encrypted Remote" or "Normal RegisterHit")
+    print("Max Enemies:", maxEnemies, maxEnemies == 12 and "(Buddha/Large Form)" or "(Normal)")
     print("═══════════════════════════════════")
 end
-
-print("═══════════════════════════════════")
-print("Stealth Attack Script Loaded!")
-print("═══════════════════════════════════")
-print("Status: " .. (_G.FastAttackEnabled and "ENABLED ✓" or "DISABLED ✗"))
-print("Method:", hasEncrypted and "Encrypted" or "Normal")
-print("")
-print("Commands:")
-print("  _G.ToggleFastAttack()")
-print("  _G.GetAttackConfig()")
-print("  _G.SetAttackConfig({MaxDistance = 30})")
-print("═══════════════════════════════════")
