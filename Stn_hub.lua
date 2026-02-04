@@ -1,6 +1,4 @@
--- Stealth Auto Attack Script
--- Mỗi attack chỉ random 1 part cho tất cả enemies
-
+-- Stealth Auto Attack Script - Complete Fixed Version
 _G.FastAttackEnabled = true
 
 local Players = game:GetService("Players")
@@ -12,7 +10,7 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 
 -- Config
 local AttackConfig = {
-    Cooldown = 0.05,
+    Cooldown = 0.075,
     MaxDistance = 60,
     RandomDelay = true,
 }
@@ -126,7 +124,6 @@ local function GetMaxEnemies()
     local root = Character and Character:FindFirstChild("HumanoidRootPart")
     if not root then return 2 end
     
-    -- Nếu HumanoidRootPart > 25 studs, có thể hit 12 enemies (Buddha form, v.v.)
     local size = root.Size
     local maxSize = math.max(size.X, size.Y, size.Z)
     
@@ -144,6 +141,7 @@ local function GetDebugInfo()
         return {
             maxEnemies = 2,
             rootSize = "N/A",
+            maxDimension = "N/A",
             largeForm = false
         }
     end
@@ -189,12 +187,10 @@ local function GetNearbyEnemies(maxDistance)
         end
     end
     
-    -- Sort by distance
     table.sort(enemies, function(a, b)
         return a.distance < b.distance
     end)
     
-    -- Giới hạn số lượng enemies (2 hoặc 12)
     local limitedEnemies = {}
     for i = 1, math.min(#enemies, maxEnemies) do
         table.insert(limitedEnemies, enemies[i])
@@ -218,7 +214,6 @@ local function PerformAttack()
     if not IsAlive(Character) then return end
     if not IsValidWeapon() then return end
     
-    -- Check cooldown
     local currentTime = tick()
     local cooldown = AttackConfig.Cooldown
     
@@ -233,10 +228,8 @@ local function PerformAttack()
     local enemies = GetNearbyEnemies(AttackConfig.MaxDistance)
     if #enemies == 0 then return end
     
-    -- QUAN TRỌNG: Random 1 part name cho lần attack này
     local randomPartName = GetRandomPartName()
     
-    -- Build parts array với CÙNG 1 part name cho tất cả enemies
     local parts = {}
     local mainTarget = nil
     
@@ -244,12 +237,10 @@ local function PerformAttack()
         local enemy = enemyData.enemy
         local part = enemy:FindFirstChild(randomPartName)
         
-        -- Nếu enemy không có part này, thử Head
         if not part then
             part = enemy:FindFirstChild("Head")
         end
         
-        -- Nếu vẫn không có, thử HumanoidRootPart
         if not part then
             part = enemy:FindFirstChild("HumanoidRootPart")
         end
@@ -266,7 +257,15 @@ local function PerformAttack()
     
     local uniqueId = GenerateUniqueId()
     
- remote
+    local success = pcall(function()
+        RegisterAttack:FireServer()
+        
+        if hasEncrypted and encryptedRemote and encryptedId then
+            local success2, seed = pcall(function()
+                return Net.seed:InvokeServer()
+            end)
+            
+            if success2 and seed then
                 local encryptedName = string.gsub("RE/RegisterHit", ".", function(c)
                     return string.char(
                         bit32.bxor(
@@ -278,7 +277,6 @@ local function PerformAttack()
                 
                 local encryptedIdValue = bit32.bxor(encryptedId + 909090, seed * 2)
                 
-                -- CHỈ fire encrypted remote
                 encryptedRemote:FireServer(
                     encryptedName,
                     encryptedIdValue,
@@ -287,8 +285,6 @@ local function PerformAttack()
                 )
             end
         else
-            -- Game KHÔNG dùng encrypted, dùng RegisterHit bình thường
-            RegisterAttack:FireServer()
             RegisterHit:FireServer(mainTarget, parts, {}, uniqueId)
         end
     end)
@@ -311,12 +307,11 @@ Player.CharacterAdded:Connect(function(newChar)
     newChar:WaitForChild("HumanoidRootPart")
 end)
 
--- Auto reconnect remotes khi server thay đổi
+-- Auto reconnect remotes
 task.spawn(function()
     while true do
         task.wait(5)
         
-        -- Kiểm tra encrypted remote
         if not hasEncrypted then
             hasEncrypted = FindEncryptedRemote()
         end
@@ -328,7 +323,6 @@ task.spawn(function()
             FindEncryptedRemote()
         end
         
-        -- Kiểm tra RegisterHit
         if not RegisterHit or not RegisterHit.Parent then
             local success = pcall(function()
                 RegisterHit = Net:WaitForChild("RE/RegisterHit", 5)
@@ -338,7 +332,6 @@ task.spawn(function()
             end
         end
         
-        -- Kiểm tra RegisterAttack
         if not RegisterAttack or not RegisterAttack.Parent then
             local success = pcall(function()
                 RegisterAttack = Net:WaitForChild("RE/RegisterAttack", 5)
@@ -382,26 +375,21 @@ _G.GetAttackConfig = function()
     print("═══════════════════════════════════")
 end
 
-local function GetStartupInfo()
+-- Startup info
+local function ShowStartupInfo()
     local debugInfo = GetDebugInfo()
-    local lines = {
-        "═══════════════════════════════════",
-        "Stealth Attack Script Loaded!",
-        "═══════════════════════════════════",
-        "Status: " .. (_G.FastAttackEnabled and "ENABLED ✓" or "DISABLED ✗"),
-        "Method: " .. (hasEncrypted and "Encrypted" or "Normal"),
-        "Max Enemies: " .. tostring(debugInfo.maxEnemies) .. " " .. (debugInfo.largeForm and "(Large Form)" or "(Normal)"),
-        "",
-        "Commands:",
-        "  _G.ToggleFastAttack()",
-        "  _G.GetAttackConfig()",
-        "  _G.SetAttackConfig({MaxDistance = 30})",
-        "═══════════════════════════════════"
-    }
-    
-    for _, line in ipairs(lines) do
-        print(line)
-    end
+    print("═══════════════════════════════════")
+    print("Stealth Attack Script Loaded!")
+    print("═══════════════════════════════════")
+    print("Status: " .. (_G.FastAttackEnabled and "ENABLED ✓" or "DISABLED ✗"))
+    print("Method: " .. (hasEncrypted and "Encrypted" or "Normal"))
+    print("Max Enemies: " .. tostring(debugInfo.maxEnemies) .. " " .. (debugInfo.largeForm and "(Large Form)" or "(Normal)"))
+    print("")
+    print("Commands:")
+    print("  _G.ToggleFastAttack()")
+    print("  _G.GetAttackConfig()")
+    print("  _G.SetAttackConfig({MaxDistance = 30})")
+    print("═══════════════════════════════════")
 end
 
-GetStartupInfo()
+ShowStartupInfo()
