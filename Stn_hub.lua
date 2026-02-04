@@ -12,8 +12,8 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 
 -- Config
 local AttackConfig = {
-    Cooldown = 0.075,
-    MaxDistance = 55,
+    Cooldown = 0.05,
+    MaxDistance = 60,
     RandomDelay = true,
 }
 
@@ -47,7 +47,7 @@ end
 -- Tìm encrypted remote
 local encryptedRemote, encryptedId
 local hasEncrypted = false
-print("1")
+
 local function FindEncryptedRemote()
     local folders = {
         SafeGet(ReplicatedStorage, "Util"),
@@ -82,7 +82,7 @@ local function FindEncryptedRemote()
 end
 
 FindEncryptedRemote()
-print("2")
+
 -- Hàm tạo unique ID
 local function GenerateUniqueId()
     local userId = tostring(Player.UserId):sub(2, 4)
@@ -137,6 +137,28 @@ local function GetMaxEnemies()
     end
 end
 
+-- Hàm debug info
+local function GetDebugInfo()
+    local root = Character and Character:FindFirstChild("HumanoidRootPart")
+    if not root then 
+        return {
+            maxEnemies = 2,
+            rootSize = "N/A",
+            largeForm = false
+        }
+    end
+    
+    local size = root.Size
+    local maxSize = math.max(size.X, size.Y, size.Z)
+    
+    return {
+        maxEnemies = maxSize > 25 and 12 or 2,
+        rootSize = string.format("%.1f x %.1f x %.1f", size.X, size.Y, size.Z),
+        maxDimension = string.format("%.1f", maxSize),
+        largeForm = maxSize > 25
+    }
+end
+
 -- Hàm lấy enemies gần
 local function GetNearbyEnemies(maxDistance)
     local root = Character and Character:FindFirstChild("HumanoidRootPart")
@@ -189,7 +211,7 @@ local function IsValidWeapon()
     local weaponType = tool:GetAttribute("WeaponType")
     return weaponType == "Melee" or weaponType == "Sword"
 end
-print("3")
+
 -- Main attack function
 local function PerformAttack()
     if not _G.FastAttackEnabled then return end
@@ -344,13 +366,42 @@ _G.SetAttackConfig = function(config)
 end
 
 _G.GetAttackConfig = function()
-    local maxEnemies = GetMaxEnemies()
+    local debugInfo = GetDebugInfo()
     print("═══════════════════════════════════")
     print("Current Config:")
     for key, value in pairs(AttackConfig) do
-        print("  " .. key .. ":", value)
+        print("  " .. key .. ":", tostring(value))
     end
-    print("Method:", hasEncrypted and "Encrypted Remote" or "Normal RegisterHit")
-    print("Max Enemies:", maxEnemies, maxEnemies == 12 and "(Buddha/Large Form)" or "(Normal)")
+    print("\nGame Detection:")
+    print("  Method:", hasEncrypted and "Encrypted Remote" or "Normal RegisterHit")
+    print("  Encrypted Remote:", encryptedRemote and encryptedRemote.Name or "None")
+    print("\nCharacter Info:")
+    print("  Root Size:", debugInfo.rootSize)
+    print("  Max Dimension:", debugInfo.maxDimension)
+    print("  Max Enemies:", debugInfo.maxEnemies, debugInfo.largeForm and "(Large Form)" or "(Normal)")
     print("═══════════════════════════════════")
 end
+
+local function GetStartupInfo()
+    local debugInfo = GetDebugInfo()
+    local lines = {
+        "═══════════════════════════════════",
+        "Stealth Attack Script Loaded!",
+        "═══════════════════════════════════",
+        "Status: " .. (_G.FastAttackEnabled and "ENABLED ✓" or "DISABLED ✗"),
+        "Method: " .. (hasEncrypted and "Encrypted" or "Normal"),
+        "Max Enemies: " .. tostring(debugInfo.maxEnemies) .. " " .. (debugInfo.largeForm and "(Large Form)" or "(Normal)"),
+        "",
+        "Commands:",
+        "  _G.ToggleFastAttack()",
+        "  _G.GetAttackConfig()",
+        "  _G.SetAttackConfig({MaxDistance = 30})",
+        "═══════════════════════════════════"
+    }
+    
+    for _, line in ipairs(lines) do
+        print(line)
+    end
+end
+
+GetStartupInfo()
