@@ -12,7 +12,7 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 
 -- Config
 local AttackConfig = {
-    Cooldown = 0.15,
+    Cooldown = 0.075,
     MaxDistance = 55,
     RandomDelay = true,
 }
@@ -47,7 +47,7 @@ end
 -- Tìm encrypted remote
 local encryptedRemote, encryptedId
 local hasEncrypted = false
-
+print("1")
 local function FindEncryptedRemote()
     local folders = {
         SafeGet(ReplicatedStorage, "Util"),
@@ -82,7 +82,7 @@ local function FindEncryptedRemote()
 end
 
 FindEncryptedRemote()
-
+print("2")
 -- Hàm tạo unique ID
 local function GenerateUniqueId()
     local userId = tostring(Player.UserId):sub(2, 4)
@@ -189,7 +189,7 @@ local function IsValidWeapon()
     local weaponType = tool:GetAttribute("WeaponType")
     return weaponType == "Melee" or weaponType == "Sword"
 end
-
+print("3")
 -- Main attack function
 local function PerformAttack()
     if not _G.FastAttackEnabled then return end
