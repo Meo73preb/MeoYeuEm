@@ -12,7 +12,7 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 
 -- Config
 local AttackConfig = {
-    Cooldown = 0.15,
+    Cooldown = 0.075,
     MaxDistance = 30,
     RandomDelay = true,
 }
@@ -241,7 +241,7 @@ local function PerformAttack()
                 end)
                 
                 local encryptedIdValue = bit32.bxor(encryptedId + 909090, seed * 2)
-                
+                RegisterAttack:FireServer()
                 -- CHỈ fire encrypted remote
                 encryptedRemote:FireServer(
                     encryptedName,
