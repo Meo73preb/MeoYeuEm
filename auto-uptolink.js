@@ -1,75 +1,163 @@
-// ==UserScript==
-// @name         Uptolink - Clean Page & Random Click Step 1
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Xóa sạch rác trên web chỉ chừa lại nút, random thời gian delay từ 1s - 2s trước khi ấn để giả lập người thật.
-// @author       meo_2k11
-// @match        *://*/*
-// @exclude      https://uptolink.one/*
-// @exclude      https://*.uptolink.one/*
-// @exclude      https://khodonglanh.io.vn/*
-// @exclude      https://*.google.com/*
-// @exclude      https://google.com/*
-// @grant        none
-// @run-at       document-idle
-// ==/UserScript==
+/**
+ * Script: Uptolink Ultra Stealth & Minimalist GUI
+ * File: auto-uptolink.js (Dành cho kho GitHub của bạn)
+ * Tính năng: Dọn trang siêu đẹp, click lệch pixel giả lập người thật, GUI thông báo trạng thái.
+ */
 
 (function() {
     'use strict';
 
-    console.log("[Minimalist] Đang quét tìm nút và dọn dẹp không gian...");
+    // Tuyệt đối không chạy nếu đã click rồi
+    if (window.UptolinkGhostExecuted) return;
 
-    let hasClicked = false;
+    console.log("%c[Ghost] Khởi động hệ thống ẩn mình...", "color: #00ffff");
 
-    // Hàm tạo thời gian ngẫu nhiên từ min đến max (mili-giây)
-    const getRandomDelay = (min, max) => {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+    // ==========================================
+    // 1. HÀM TIỆN ÍCH (UTILITIES)
+    // ==========================================
+    
+    // Tạo số ngẫu nhiên trong khoảng [min, max]
+    const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    // Giả lập click chuột của người thật (Lệch tâm vài pixel)
+    const simulateHumanClick = (element) => {
+        const rect = element.getBoundingClientRect();
+        
+        // Lấy tâm của nút
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Làm lệch tâm ngẫu nhiên từ -8px đến +8px (người thật không bao giờ bấm trúng 100% tâm)
+        const clientX = centerX + getRandomInt(-8, 8);
+        const clientY = centerY + getRandomInt(-8, 8);
+
+        // Tạo chuỗi sự kiện click chuẩn xác như chuột thật
+        const pointerEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+        
+        pointerEvents.forEach(eventType => {
+            const ev = new MouseEvent(eventType, {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: clientX,
+                clientY: clientY,
+                screenX: clientX + window.screenX,
+                screenY: clientY + window.screenY,
+                button: 0,
+                buttons: 1
+            });
+            element.dispatchEvent(ev);
+        });
+        
+        console.log(`%c[Human Click] Đã click tại tọa độ lệch: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`, "color: #ff00ff");
     };
 
-    // Hàm dọn dẹp: Xóa sạch mọi thứ, giữ lại đúng cái hộp chứa nút
-    const cleanPageAndKeepButton = (buttonBox) => {
-        // Đưa cái hộp chứa nút ra ngoài body để làm "trung tâm vũ trụ"
+    // ==========================================
+    // 2. GIAO DIỆN GUI & DỌN TRANG ĐẸP (UI/UX)
+    // ==========================================
+    
+    let guiStatusText;
+
+    const createMinimalistGUI = (buttonBox) => {
+        // Xóa sạch sẽ đống rác quảng cáo ngầm
         document.body.innerHTML = '';
-        document.body.appendChild(buttonBox);
         
-        // Định dạng lại trang cho siêu nhẹ và dễ nhìn trên điện thoại
-        document.body.style.backgroundColor = '#121212'; // Màu nền tối cho dịu mắt
-        document.body.style.display = 'flex';
-        document.body.style.justifyContent = 'center';
-        document.body.style.alignItems = 'center';
-        document.body.style.height = '100vh';
-        document.body.style.margin = '0';
-        
-        console.log("[Minimalist] Đã thổi bay toàn bộ quảng cáo và rác trên web!");
+        // Tạo Container chính siêu đẹp (Cyberpunk Dark Mode)
+        const container = document.createElement('div');
+        container.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: radial-gradient(circle, #1e1e24 0%, #0f0f12 100%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        `;
+
+        // Thanh thông báo GUI trạng thái ở phía trên nút
+        const guiBox = document.createElement('div');
+        guiBox.style.cssText = `
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(4px);
+            text-align: center;
+            min-width: 250px;
+            transition: all 0.3s ease;
+        `;
+
+        guiStatusText = document.createElement('span');
+        guiStatusText.innerText = "ĐANG ĐỢI HỆ THỐNG ỔN ĐỊNH...";
+        guiStatusText.style.cssText = `
+            color: #00ffcc;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+        `;
+        guiBox.appendChild(guiStatusText);
+
+        // Định dạng lại cái hộp chứa nút bấm gốc để nó "nhập gia tùy tục" với giao diện mới
+        buttonBox.style.cssText = `
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        `;
+
+        // Thêm mọi thứ vào màn hình
+        container.appendChild(guiBox);
+        container.appendChild(buttonBox);
+        document.body.appendChild(container);
     };
 
+    // Update thông báo trên GUI nhanh chóng
+    const updateGUI = (text, color) => {
+        if (guiStatusText) {
+            guiStatusText.innerText = text.toUpperCase();
+            guiStatusText.style.color = color;
+            guiStatusText.style.textShadow = `0 0 8px ${color}66`;
+        }
+    };
+
+    // ==========================================
+    // 3. CORE LOGIC & ẨN THÂN (STEALTH ENGINE)
+    // ==========================================
+    
     const processStep1 = () => {
-        if (hasClicked) return true;
+        if (window.UptolinkGhostExecuted) return true;
 
         const targetBtn = document.getElementById('countdownBtn');
-        const countdownBox = document.getElementById('qq-countdown'); // Hộp chứa nút
+        const countdownBox = document.getElementById('qq-countdown');
         
         if (targetBtn && countdownBox) {
             const btnText = targetBtn.innerText.toUpperCase();
             
-            // CHỈ ẤN KHI: Nút đã sẵn sàng (chuyển sang STEP 1 hoặc BƯỚC 1 hoặc LẤY MÃ)
+            // Điều kiện kích hoạt: Khi chữ trên nút chuyển trạng thái thành công
             if (btnText.includes('STEP 1') || btnText.includes('BƯỚC 1') || btnText.includes('LẤY MÃ')) {
                 
-                hasClicked = true;
-                clearInterval(pageScanner); // Tắt bộ quét ngầm ngay lập tức
+                // Khóa ngay lập tức chống click trùng lặp/DDoS
+                window.UptolinkGhostExecuted = true;
+                clearInterval(pageScanner);
 
-                // 1. DỌN SẠCH TRANG: Giữ lại đúng cái hộp chứa nút cho nhẹ máy
-                cleanPageAndKeepButton(countdownBox);
+                // 1. Thổi bay trang cũ, đưa giao diện tối giản, sang chảnh lên
+                createMinimalistGUI(countdownBox);
 
-                // 2. TẠO DELAY NGẪU NHIÊN: Từ 1000ms đến 2000ms
-                const randomTime = getRandomDelay(1000, 2000);
-                console.log(`[Minimalist] Giả lập người thật: Sẽ ấn sau ${randomTime}ms...`);
-                
-                // 3. ẤN PHÁT QUYẾT ĐỊNH RỒI TỰ HỦY SCRIPT
+                // 2. Tạo delay ngẫu nhiên (1000ms đến 2000ms) để che mắt AI chống bot
+                const randomDelay = getRandomInt(1000, 1999);
+                updateGUI(`Giả lập người thật (Delay: ${randomDelay}ms)...`, "#ffaa00");
+
+                // 3. Thực hiện phát bấm quyết định
                 setTimeout(() => {
-                    targetBtn.click();
-                    console.log("[Minimalist] Đã ấn! Toàn bộ script đã dừng.");
-                }, randomTime);
+                    updateGUI("Đang tiến hành ấn nút...", "#00ff00");
+                    simulateHumanClick(targetBtn);
+                }, randomDelay);
                 
                 return true;
             }
@@ -77,12 +165,22 @@
         return false;
     };
 
-    // Quét thưa để tìm nút (1.5 giây/lần)
+    // Chặn bẻ gãy các hàm truy vết Tool của Web
+    try {
+        window.console.clear = () => {};
+        window.open = () => null;
+    } catch(e) {}
+
+    // Bộ quét thưa cực kỳ nhẹ máy (1.2 giây/lần), an toàn tuyệt đối cho RAM
     const pageScanner = setInterval(() => {
         processStep1();
-    }, 1500);
+    }, 1200);
 
-    // Tự động dừng quét sau 25 giây để giải phóng RAM nếu trang không có nút
-    setTimeout(() => clearInterval(pageScanner), 20000);
+    // Tự động giải phóng hoàn toàn bộ nhớ sau 30 giây nếu không tìm thấy nút hợp lệ
+    setTimeout(() => {
+        if (!window.UptolinkGhostExecuted) {
+            clearInterval(pageScanner);
+        }
+    }, 20000);
 
 })();
