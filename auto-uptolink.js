@@ -1,186 +1,165 @@
 /**
- * Script: Uptolink Ultra Stealth & Minimalist GUI
- * File: auto-uptolink.js (Dành cho kho GitHub của bạn)
- * Tính năng: Dọn trang siêu đẹp, click lệch pixel giả lập người thật, GUI thông báo trạng thái.
+ * Script: Uptolink Multi-Step Optimizer
+ * File: auto-uptolink.js (Bản v1.2 - Đợi hết giây dài -> Chờ chữ xuất hiện -> F5 sang Bước 2)
  */
 
 (function() {
     'use strict';
 
-    // Tuyệt đối không chạy nếu đã click rồi
-    if (window.UptolinkGhostExecuted) return;
+    if (window.UptolinkStepExecuted) return;
 
-    console.log("%c[Ghost] Khởi động hệ thống ẩn mình...", "color: #00ffff");
-
-    // ==========================================
-    // 1. HÀM TIỆN ÍCH (UTILITIES)
-    // ==========================================
-    
-    // Tạo số ngẫu nhiên trong khoảng [min, max]
+    // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH PIXEL)
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-    // Giả lập click chuột của người thật (Lệch tâm vài pixel)
     const simulateHumanClick = (element) => {
         const rect = element.getBoundingClientRect();
-        
-        // Lấy tâm của nút
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        // Làm lệch tâm ngẫu nhiên từ -8px đến +8px (người thật không bao giờ bấm trúng 100% tâm)
-        const clientX = centerX + getRandomInt(-8, 8);
-        const clientY = centerY + getRandomInt(-8, 8);
+        const clientX = (rect.left + rect.width / 2) + getRandomInt(-8, 8);
+        const clientY = (rect.top + rect.height / 2) + getRandomInt(-8, 8);
 
-        // Tạo chuỗi sự kiện click chuẩn xác như chuột thật
         const pointerEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
-        
         pointerEvents.forEach(eventType => {
-            const ev = new MouseEvent(eventType, {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-                clientX: clientX,
-                clientY: clientY,
-                screenX: clientX + window.screenX,
-                screenY: clientY + window.screenY,
-                button: 0,
-                buttons: 1
-            });
-            element.dispatchEvent(ev);
+            element.dispatchEvent(new MouseEvent(eventType, {
+                bubbles: true, cancelable: true, view: window,
+                clientX: clientX, clientY: clientY
+            }));
         });
-        
-        console.log(`%c[Human Click] Đã click tại tọa độ lệch: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`, "color: #ff00ff");
+        console.log(`[Ghost] Click lệch tâm: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`);
     };
 
-    // ==========================================
-    // 2. GIAO DIỆN GUI & DỌN TRANG ĐẸP (UI/UX)
-    // ==========================================
-    
+    // 2. GIAO DIỆN CYBERPUNK TOÂN GIẢN
     let guiStatusText;
 
     const createMinimalistGUI = (buttonBox) => {
-        // Xóa sạch sẽ đống rác quảng cáo ngầm
+        // Chỉ dọn trang khi không ở trạng thái đợi chữ để F5
+        if (document.getElementById('gui-active')) return;
+        
         document.body.innerHTML = '';
         
-        // Tạo Container chính siêu đẹp (Cyberpunk Dark Mode)
         const container = document.createElement('div');
         container.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: radial-gradient(circle, #1e1e24 0%, #0f0f12 100%);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; height: 100vh; margin: 0; overflow: hidden;
+            background: radial-gradient(circle, #1a1c23 0%, #0d0e12 100%);
+            font-family: 'Segoe UI', Roboto, sans-serif;
         `;
 
-        // Thanh thông báo GUI trạng thái ở phía trên nút
         const guiBox = document.createElement('div');
         guiBox.style.cssText = `
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 12px 24px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            backdrop-filter: blur(4px);
-            text-align: center;
-            min-width: 250px;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 16px; padding: 15px 30px; margin-bottom: 25px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1); text-align: center;
         `;
 
-        guiStatusText = document.createElement('span');
-        guiStatusText.innerText = "ĐANG ĐỢI HỆ THỐNG ỔN ĐỊNH...";
-        guiStatusText.style.cssText = `
-            color: #00ffcc;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
-        `;
+        const title = document.createElement('div');
+        title.innerText = "UPTOLINK STEP CONTROLLER V8.0";
+        title.style.cssText = `color: #ffffff; font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; opacity: 0.6;`;
+
+        guiStatusText = document.createElement('div');
+        guiStatusText.innerText = "HỆ THỐNG ĐANG THEO DÕI...";
+        guiStatusText.style.cssText = `color: #00ffcc; font-size: 15px; font-weight: 700; letter-spacing: 1px; text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);`;
+
+        guiBox.appendChild(title);
         guiBox.appendChild(guiStatusText);
+        
+        buttonBox.style.cssText = `transform: scale(1.1); box-shadow: 0 10px 30px rgba(0,0,0,0.6); border-radius: 8px;`;
 
-        // Định dạng lại cái hộp chứa nút bấm gốc để nó "nhập gia tùy tục" với giao diện mới
-        buttonBox.style.cssText = `
-            transform: scale(1.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 8px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        `;
-
-        // Thêm mọi thứ vào màn hình
         container.appendChild(guiBox);
         container.appendChild(buttonBox);
         document.body.appendChild(container);
+        
+        countdownBox.id = 'gui-active';
     };
 
-    // Update thông báo trên GUI nhanh chóng
     const updateGUI = (text, color) => {
         if (guiStatusText) {
             guiStatusText.innerText = text.toUpperCase();
             guiStatusText.style.color = color;
-            guiStatusText.style.textShadow = `0 0 8px ${color}66`;
+            guiStatusText.style.textShadow = `0 0 10px ${color}88`;
         }
     };
 
-    // ==========================================
-    // 3. CORE LOGIC & ẨN THÂN (STEALTH ENGINE)
-    // ==========================================
-    
-    const processStep1 = () => {
-        if (window.UptolinkGhostExecuted) return true;
+    // 3. LOGIC THEO QUY TRÌNH THỰC TẾ
+    const monitorSteps = () => {
+        if (window.UptolinkStepExecuted) return;
 
         const targetBtn = document.getElementById('countdownBtn');
         const countdownBox = document.getElementById('qq-countdown');
+
+        if (!targetBtn || !countdownBox) return;
+
+        const btnText = targetBtn.innerText.toUpperCase();
         
-        if (targetBtn && countdownBox) {
-            const btnText = targetBtn.innerText.toUpperCase();
-            
-            // Điều kiện kích hoạt: Khi chữ trên nút chuyển trạng thái thành công
-            if (btnText.includes('STEP 1') || btnText.includes('BƯỚC 1') || btnText.includes('LẤY MÃ')) {
-                
-                // Khóa ngay lập tức chống click trùng lặp/DDoS
-                window.UptolinkGhostExecuted = true;
-                clearInterval(pageScanner);
+        // Đọc số giây đang chạy trên nút
+        const matchSecond = btnText.match(/(\d+)\s*S/);
+        
+        // TRƯỜNG HỢP 1: Nút đang đếm ngược giây
+        if (matchSecond) {
+            const seconds = parseInt(matchSecond[1], 10);
 
-                // 1. Thổi bay trang cũ, đưa giao diện tối giản, sang chảnh lên
+            if (seconds > 20) {
+                // Nếu giây lớn hơn 20s (bước đếm dài ban đầu), KHÔNG dọn trang để bạn nhìn thấy bài viết mà click link quảng cáo
+                console.log(`[Ghost] Đang đợi hết giây dài: ${seconds}s...`);
+                return; 
+            }
+
+            if (seconds <= 20) {
+                // Nếu giây nhỏ hơn hoặc bằng 20s (thường là ở Bước 2), dọn sạch trang cho nhẹ máy và coi số giây lùi
                 createMinimalistGUI(countdownBox);
-
-                // 2. Tạo delay ngẫu nhiên (1000ms đến 2000ms) để che mắt AI chống bot
-                const randomDelay = getRandomInt(1000, 1999);
-                updateGUI(`Giả lập người thật (Delay: ${randomDelay}ms)...`, "#ffaa00");
-
-                // 3. Thực hiện phát bấm quyết định
-                setTimeout(() => {
-                    updateGUI("Đang tiến hành ấn nút...", "#00ff00");
-                    simulateHumanClick(targetBtn);
-                }, randomDelay);
-                
-                return true;
+                updateGUI(`Đang đếm ngược bước 2: ${seconds}s`, "#00ffcc");
+                return;
             }
         }
-        return false;
+
+        // TRƯỜNG HỢP 2: Giây đã chạy hết và xuất hiện chữ "NHẤN LINK BẤT KỲ..."
+        if (btnText.includes("NHẤN LINK") || btnText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
+            // Chúng ta không dọn trang khúc này để giữ nguyên các link quảng cáo cho bạn nhấn
+            console.log("[Ghost] Đã xuất hiện yêu cầu nhấn link quảng cáo!");
+            
+            // Script sẽ tạo một bộ kiểm tra: Khi bạn vừa click vào cái gì đó trên trang hoặc sau khi bạn làm nhiệm vụ xong
+            // Nó sẽ canh để F5 tải lại trang nhằm kích hoạt Bước 2
+            window.addEventListener('blur', () => {
+                // Khi bạn click vào quảng cáo, trình duyệt thường bị mất focus (blur) vì nhảy tab hoặc mở link
+                // Lúc này là thời điểm vàng để F5 trang gốc nhằm nạp Bước 2
+                setTimeout(() => {
+                    console.log("[Ghost] Phát hiện tương tác quảng cáo! Đang F5 để sang Bước 2...");
+                    location.reload();
+                }, 1000);
+            });
+            return;
+        }
+
+        // TRƯỜNG HỢP 3: NÚT ĐÃ SẴN SÀNG ĐỂ BẤM (STEP 1, STEP 2, BƯỚC 1, BƯỚC 2, LẤY MÃ)
+        if (btnText.includes('STEP') || btnText.includes('BƯỚC') || btnText.includes('LẤY MÃ') || btnText.includes('CLICK')) {
+            window.UptolinkStepExecuted = true;
+            clearInterval(pageScanner);
+
+            // Dọn sạch trang rác trước khi bấm phát quyết định
+            createMinimalistGUI(countdownBox);
+
+            // Delay ngẫu nhiên 1s - 2s giả lập tay người
+            const randomDelay = getRandomInt(1000, 2000);
+            updateGUI(`Chuẩn bị ấn (${randomDelay}ms)...`, "#ffaa00");
+
+            setTimeout(() => {
+                updateGUI("Đã ấn thành công!", "#00ff00");
+                simulateHumanClick(targetBtn);
+                
+                // Mở khóa lại sau 3 giây đề phòng trang không chuyển hướng ngay (để quét tiếp bước sau)
+                setTimeout(() => {
+                    window.UptolinkStepExecuted = false;
+                    if (!window.location.href.includes('finish')) {
+                        pageScanner = setInterval(monitorSteps, 1200);
+                    }
+                }, 3000);
+
+            }, randomDelay);
+        }
     };
 
-    // Chặn bẻ gãy các hàm truy vết Tool của Web
-    try {
-        window.console.clear = () => {};
-        window.open = () => null;
-    } catch(e) {}
+    // Chặn popup đè lung tung
+    try { window.open = () => null; } catch(e) {}
 
-    // Bộ quét thưa cực kỳ nhẹ máy (1.2 giây/lần), an toàn tuyệt đối cho RAM
-    const pageScanner = setInterval(() => {
-        processStep1();
-    }, 1200);
-
-    // Tự động giải phóng hoàn toàn bộ nhớ sau 30 giây nếu không tìm thấy nút hợp lệ
-    setTimeout(() => {
-        if (!window.UptolinkGhostExecuted) {
-            clearInterval(pageScanner);
-        }
-    }, 20000);
+    // Kích hoạt bộ quét thưa
+    let pageScanner = setInterval(monitorSteps, 1200);
 
 })();
