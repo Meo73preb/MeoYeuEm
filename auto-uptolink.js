@@ -1,41 +1,14 @@
 /**
- * Script: Uptolink Ghost Bypass - Premium Stealth & Traffic Detector
- * File: auto-uptolink.js (Bản v1.4 - Nhận diện hết mã NoTraffic & Chống spam)
+ * Script: Uptolink Auto-Quest Driver
+ * File: auto-uptolink.js (Bản v1.5 - Tự bốc link Quest, Giữ Session, Ép F5 thông minh)
  */
 
 (function() {
     'use strict';
 
-    // 1. KIỂM TRA LINK "NO TRAFFIC" (HẾT MÃ) TRƯỚC TIÊN
-    const currentURL = window.location.href;
-    
-    // Check xem URL có chứa cả "linkhuongdan.online" và "qq=notraffic" hay không
-    if (currentURL.includes('linkhuongdan.online') && currentURL.includes('qq=notraffic')) {
-        console.log("%c[Ghost Detector] Phát hiện hệ thống Uptolink đã HẾT MÃ (No Traffic)!", "color: #ff3333; font-size: 16px; font-weight: bold;");
-        
-        // Tạo một thông báo GUI khẩn cấp đè lên màn hình để bạn dễ thấy
-        const alertBox = document.createElement('div');
-        alertBox.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 15, 18, 0.95); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 999999;
-            font-family: 'Segoe UI', Roboto, sans-serif; color: #ffffff;
-        `;
-        
-        alertBox.innerHTML = `
-            <div style="background: rgba(255, 51, 51, 0.1); border: 2px solid #ff3333; padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 0 30px rgba(255, 51, 51, 0.3);">
-                <h1 style="margin: 0 0 10px 0; color: #ff3333; font-size: 24px; letter-spacing: 1px;">UPTOLINK HẾT MÃ</h1>
-                <p style="margin: 0; color: #cccccc; font-size: 15px;">Chiến dịch này đã cạn traffic (qq=notraffic).<br>Vui lòng đóng tab và đổi camp mới!</p>
-            </div>
-        `;
-        document.documentElement.appendChild(alertBox);
-        return; // Dừng chạy toàn bộ đoạn code phía dưới
-    }
+    if (window.UptolinkMasterExecuted) return;
 
-    // Nếu không dính lỗi hết mã, hệ thống ẩn thân v9.0 cũ sẽ tiếp tục kích hoạt ngầm bình thường
-    if (window.UptolinkPureStealthExecuted) return;
-
-    // GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH TÂM NGẪU NHIÊN)
+    // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH TÂM NGẪU NHIÊN)
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
     const simulateHumanClick = (element) => {
@@ -51,53 +24,101 @@
                     clientX: clientX, clientY: clientY
                 }));
             });
-            console.log(`[Ghost] Click thành công tại tọa độ lệch: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`);
+            console.log(`[Ghost] Click lệch tâm thành công: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`);
         } catch (err) {
-            console.error("[Ghost] Lỗi click:", err);
+            console.error("[Ghost] Lỗi kích hoạt click:", err);
         }
     };
 
-    // LOGIC THEO DÕI NGẦM
-    const monitorStepsSilently = () => {
-        if (window.UptolinkPureStealthExecuted) return;
+    // 2. CORE LOGIC XỬ LÝ THEO QUY TRÌNH THỰC TẾ
+    const mainDriver = () => {
+        if (window.UptolinkMasterExecuted) return;
 
+        const currentURL = window.location.href;
+
+        // BƯỚC A: KIỂM TRA TRANG HƯỚNG DẪN (linkhuongdan.online)
+        if (currentURL.includes('linkhuongdan.online')) {
+            
+            // 1. Check lỗi hết mã (No Traffic)
+            if (currentURL.includes('qq=notraffic')) {
+                window.UptolinkMasterExecuted = true;
+                clearInterval(masterScanner);
+                alert("🚨 UPTOLINK HẾT MÃ (No Traffic)! Vui lòng bỏ camp này.");
+                return;
+            }
+
+            // 2. Nếu trạng thái hợp lệ (qq=complete) -> Tự động bốc từ khóa Quest để đi làm nhiệm vụ
+            if (currentURL.includes('qq=complete')) {
+                // Quét tìm từ khóa màu đỏ (Ví dụ: UY88) như trong ảnh bạn chụp
+                const redElements = document.querySelectorAll('[style*="color: red"], [style*="color: #ff0000"], [style*="color:#ff0000"]');
+                let keyword = "";
+                
+                for (let elem of redElements) {
+                    const text = elem.innerText.trim();
+                    if (text && text.length < 15) { // Từ khóa nhà cái thường ngắn
+                        keyword = text;
+                        break;
+                    }
+                }
+
+                if (keyword && !window.HasAlertedQuest) {
+                    window.HasAlertedQuest = true;
+                    console.log(`[Ghost] Đã tìm thấy từ khóa Quest: ${keyword}`);
+                    // Hiển thị thông báo nhắc bạn từ khóa để bạn vào thẳng trang web đó cho nhanh, đỡ phải gõ Google
+                    // Ví dụ: Tìm chữ UY88 thì bạn gõ thẳng uy88vnn.com hoặc uy88.com trên tab đó luôn
+                    alert(`🎯 TỪ KHÓA LẤY MÃ: ${keyword}\n Hãy truy cập thẳng vào trang web của từ khóa này để lấy mã nhé!`);
+                }
+                return;
+            }
+        }
+
+        // BƯỚC B: XỬ LÝ TRÊN TRANG ĐÍCH NHIỆM VỤ (Ví dụ: meobet-88, uy88...)
         const targetBtn = document.getElementById('countdownBtn');
         if (!targetBtn) return;
 
         const btnText = targetBtn.innerText.toUpperCase();
         const matchSecond = btnText.match(/(\d+)\s*S/);
-        
+
+        // Trường hợp đang đếm giây
         if (matchSecond) {
-            return; // Đang đếm giây thì giữ im lặng
+            const seconds = parseInt(matchSecond[1], 10);
+            console.log(`[Ghost] Đang theo dõi đếm giây: ${seconds}s`);
+            return; // Để yên cho giây chạy ngầm
         }
 
-        // TRƯỜNG HỢP 1: Chờ click link để F5
+        // TRƯỜNG HỢP 1: Đợi hết giây dài (>50s) và xuất hiện chữ bắt Click Link để F5 sang Bước 2
         if (btnText.includes("NHẤN LINK") || btnText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
+            console.log("[Ghost] Trạng thái chờ click link quảng cáo để F5.");
+            
+            // Lắng nghe hành vi khi bạn click vào màn hình (bấm quảng cáo)
             window.addEventListener('blur', () => {
-                window.UptolinkPureStealthExecuted = true;
-                clearInterval(pageScanner);
+                window.UptolinkMasterExecuted = true;
+                clearInterval(masterScanner);
                 setTimeout(() => {
+                    console.log("[Ghost] Ép F5 tự động để nạp Bước 2...");
                     location.reload();
-                }, 1500);
+                }, 1200);
             }, { once: true });
             return;
         }
 
-        // TRƯỜNG HỢP 2: NÚT SẴN SÀNG ĐỂ BẤM
+        // TRƯỜNG HỢP 2: NÚT SẴN SÀNG BẤM PHÁT QUYẾT ĐỊNH (STEP 1, STEP 2, LẤY MÃ...)
         if (btnText.includes('STEP') || btnText.includes('BƯỚC') || btnText.includes('LẤY MÃ') || btnText.includes('CLICK')) {
-            window.UptolinkPureStealthExecuted = true;
-            clearInterval(pageScanner);
+            window.UptolinkMasterExecuted = true;
+            clearInterval(masterScanner);
 
+            // Tạo độ trễ ngẫu nhiên mô phỏng tay người thật (1.2s - 2.2s)
             const randomDelay = getRandomInt(1200, 2200);
-            console.log(`[Ghost] Nút sẵn sàng, bấm sau ${randomDelay}ms...`);
+            console.log(`[Ghost] Nút đã sẵn sàng! Bấm sau ${randomDelay}ms...`);
 
             setTimeout(() => {
                 simulateHumanClick(targetBtn);
                 
+                // Mở khóa lại sau 4 giây đề phòng hệ thống phản hồi chậm hoặc có Step tiếp theo
                 setTimeout(() => {
-                    window.UptolinkPureStealthExecuted = false;
+                    window.UptolinkMasterExecuted = false;
                     if (!window.location.href.includes('finish')) {
-                        pageScanner = setInterval(monitorStepsSilently, 1500);
+                        masterScanner = setInterval(mainDriver, 1200);
                     }
                 }, 4000);
 
@@ -105,11 +126,7 @@
         }
     };
 
-    try {
-        window.open = () => null;
-        console.clear = () => {};
-    } catch(e) {}
-
-    let pageScanner = setInterval(monitorStepsSilently, 1500);
+    // Kích hoạt bộ quét thưa siêu nhẹ máy
+    let masterScanner = setInterval(mainDriver, 1200);
 
 })();
