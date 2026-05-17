@@ -1,12 +1,12 @@
 /**
- * Script: Uptolink Multi-Step Optimizer
- * File: auto-uptolink.js (Bản v12.0 - Tấn công hệ thống Class Countdown mới)
+ * Script: Uptolink Advanced Class Deep Scanner
+ * File: auto-uptolink.js (Bản v1.7 - Khắc phục triệt để lỗi không nhận class countdown)
  */
 
 (function() {
     'use strict';
 
-    if (window.UptolinkV12Executed) return;
+    if (window.UptolinkV13Executed) return;
 
     // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH PIXEL)
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -24,81 +24,90 @@
                     clientX: clientX, clientY: clientY
                 }));
             });
-            console.log(`%c[Ghost v12] Click lệch tâm thành công vào thẻ countdown!`, "color: #00ff00");
+            console.log(`%c[Ghost v13] Đã kích nổ cú click vào mục tiêu!`, "color: #00ff00");
         } catch (err) {
-            console.error("[Ghost v12] Lỗi click:", err);
+            console.error("[Ghost v13] Lỗi click:", err);
         }
     };
 
-    // 2. BỘ NÃO ĐIỀU KHIỂN CHÍNH
-    const monitorCountdownClass = () => {
-        if (window.UptolinkV12Executed) return;
+    // 2. CORE LOGIC PHÂN TÍCH CHỮ TRÊN THẺ
+    const checkAndAct = (targetElement) => {
+        if (window.UptolinkV13Executed) return;
 
-        const currentURL = window.location.href;
+        const text = targetElement.innerText.toUpperCase().trim();
+        if (!text) return;
 
-        // KIỂM TRA TRANG HƯỚNG DẪN (NÉ LỖI HẾT MÃ)
-        if (currentURL.includes('linkhuongdan.online') && currentURL.includes('qq=notraffic')) {
-            window.UptolinkV12Executed = true;
-            clearInterval(classScanner);
-            alert("🚨 HỆ THỐNG BÁO: UPTOLINK ĐÃ HẾT MÃ (No Traffic)!");
+        console.log(`[Ghost v13] Đang phân tích text: "${text}"`);
+
+        // TRƯỜNG HỢP 1: Đang đếm ngược giây (Ví dụ có số và chữ S, hoặc chỉ có số ngắn)
+        const matchSecond = text.match(/(\d+)/);
+        if (matchSecond && (text.includes('S') || text.length <= 3)) {
+            console.log(`[Ghost v13] Trạng thái: Đang đếm giây (${matchSecond[1]}s) -> Bỏ qua chờ đợi.`);
             return;
         }
 
-        // TÌM THẺ COUNTDOWN THEO PHÁT HIỆN MỚI CỦA BẠN
-        const targetSpan = document.querySelector('.countdown');
-        if (!targetSpan) return;
-
-        const spanText = targetSpan.innerText.toUpperCase().trim();
-        
-        // Đọc số giây đang chạy ngầm trong thẻ span (ví dụ: "VUI LÒNG ĐỢI 45S" hoặc "45")
-        const matchSecond = spanText.match(/(\d+)/);
-
-        if (matchSecond && (spanText.includes('S') || spanText.length <= 3)) {
-            const seconds = parseInt(matchSecond[1], 10);
-            console.log(`[Ghost v12] Thẻ .countdown đang nhảy giây: ${seconds}s`);
-            return; // Giữ im lặng cho giây chạy xong mượt mà
-        }
-
-        // TRƯỜNG HỢP 1: Chờ click link nhiệm vụ để kích hoạt F5 (Áp dụng khi chữ bắt đầu đổi)
-        if (spanText.includes("NHẤN LINK") || spanText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
-            console.log("[Ghost v12] Đang chờ bạn tương tác link quảng cáo để F5 sang Bước 2...");
-            
+        // TRƯỜNG HỢP 2: Chờ click link quảng cáo để F5 (Nếu có chữ yêu cầu trên màn hình)
+        if (text.includes("NHẤN LINK") || text.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
             window.addEventListener('blur', () => {
-                window.UptolinkV12Executed = true;
-                clearInterval(classScanner);
+                window.UptolinkV13Executed = true;
                 setTimeout(() => {
-                    console.log("[Ghost v12] Tự động F5 để kích hoạt Bước tiếp theo...");
                     location.reload();
                 }, 1200);
             }, { once: true });
             return;
         }
 
-        // TRƯỜNG HỢP 2: NÚT ĐÃ SẴN SÀNG ĐỂ BẤM (NHẤN ĐỂ TIẾP TỤC, CLICK HERE, STEP 1, LẤY MÃ...)
-        if (spanText.includes('NHẤN') || spanText.includes('TIẾP TỤC') || spanText.includes('STEP') || spanText.includes('BƯỚC') || spanText.includes('CLICK')) {
-            window.UptolinkV12Executed = true;
-            clearInterval(classScanner);
+        // TRƯỜNG HỢP 3: NÚT ĐÃ SẴN SÀNG (LẤY MÃ STEP 1, NHẤN ĐỂ TIẾP TỤC, CLICK HERE...)
+        if (text.includes('LẤY MÃ') || text.includes('STEP') || text.includes('BƯỚC') || text.includes('NHẤN') || text.includes('TIẾP TỤC')) {
+            window.UptolinkV13Executed = true;
 
-            // Phản xạ delay ngẫu nhiên cực chuẩn con người (1s - 2s)
-            const randomDelay = getRandomInt(1000, 2000);
-            console.log(`[Ghost v12] Đã bắt được chữ '${spanText}'. Sẽ tự động bấm sau ${randomDelay}ms...`);
+            const randomDelay = getRandomInt(1200, 2200);
+            console.log(`%c[✓] BẮT ĐƯỢC MỤC TIÊU SẴN SÀNG! Sẽ bấm sau ${randomDelay}ms...`, "color: #00ffff");
 
             setTimeout(() => {
-                simulateHumanClick(targetSpan);
+                simulateHumanClick(targetElement);
                 
-                // Mở khóa lại sau 4 giây đề phòng hệ thống yêu cầu nhiều Step liên tiếp
+                // Mở khóa lại sau 4 giây để quét tiếp các step sau
                 setTimeout(() => {
-                    window.UptolinkV12Executed = false;
-                    if (!window.location.href.includes('finish')) {
-                        classScanner = setInterval(monitorCountdownClass, 1200);
-                    }
+                    window.UptolinkV13Executed = false;
                 }, 4000);
-
             }, randomDelay);
         }
     };
 
-    // Quét liên tục mỗi 1.2 giây để bám sát trạng thái thẻ span (.countdown)
-    let classScanner = setInterval(monitorCountdownClass, 1200);
+    // 3. BỘ GIÁM SÁT ĐỘNG (MUTATION OBSERVER) - CHỐNG TRỄ DOM
+    const startObserver = () => {
+        // Quét nhanh lần đầu tiên ngay khi script chạy
+        const initialElements = document.querySelectorAll('.countdown');
+        initialElements.forEach(el => checkAndAct(el));
+
+        // Cấu hình bộ giám sát sự thay đổi của trang web
+        const observer = new MutationObserver((mutations) => {
+            if (window.UptolinkV13Executed) return;
+
+            // Tìm lại tất cả các phần tử có class countdown khi trang web thay đổi cấu trúc
+            const elements = document.querySelectorAll('.countdown');
+            elements.forEach(el => checkAndAct(el));
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    };
+
+    // Kiểm tra link hết mã trước khi kích hoạt bộ quét
+    if (window.location.href.includes('linkhuongdan.online') && window.location.href.includes('qq=notraffic')) {
+        alert("🚨 HỆ THỐNG BÁO: UPTOLINK ĐÃ HẾT MÃ (No Traffic)!");
+        return;
+    }
+
+    // Khởi chạy hệ thống cảm biến
+    if (document.body) {
+        startObserver();
+    } else {
+        window.addEventListener('DOMContentLoaded', startObserver);
+    }
 
 })();
