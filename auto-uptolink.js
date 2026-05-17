@@ -1,21 +1,21 @@
 /**
- * Script: Uptolink Auto-Quest Driver
- * File: auto-uptolink.js (Bản v1.5 - Tự bốc link Quest, Giữ Session, Ép F5 thông minh)
+ * Script: Uptolink Multi-Step Optimizer
+ * File: auto-uptolink.js (Bản v12.0 - Tấn công hệ thống Class Countdown mới)
  */
 
 (function() {
     'use strict';
 
-    if (window.UptolinkMasterExecuted) return;
+    if (window.UptolinkV12Executed) return;
 
-    // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH TÂM NGẪU NHIÊN)
+    // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH PIXEL)
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
     const simulateHumanClick = (element) => {
         try {
             const rect = element.getBoundingClientRect();
-            const clientX = (rect.left + rect.width / 2) + getRandomInt(-6, 6);
-            const clientY = (rect.top + rect.height / 2) + getRandomInt(-6, 6);
+            const clientX = (rect.left + rect.width / 2) + getRandomInt(-5, 5);
+            const clientY = (rect.top + rect.height / 2) + getRandomInt(-5, 5);
 
             const pointerEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
             pointerEvents.forEach(eventType => {
@@ -24,101 +24,73 @@
                     clientX: clientX, clientY: clientY
                 }));
             });
-            console.log(`[Ghost] Click lệch tâm thành công: X=${clientX.toFixed(1)}, Y=${clientY.toFixed(1)}`);
+            console.log(`%c[Ghost v12] Click lệch tâm thành công vào thẻ countdown!`, "color: #00ff00");
         } catch (err) {
-            console.error("[Ghost] Lỗi kích hoạt click:", err);
+            console.error("[Ghost v12] Lỗi click:", err);
         }
     };
 
-    // 2. CORE LOGIC XỬ LÝ THEO QUY TRÌNH THỰC TẾ
-    const mainDriver = () => {
-        if (window.UptolinkMasterExecuted) return;
+    // 2. BỘ NÃO ĐIỀU KHIỂN CHÍNH
+    const monitorCountdownClass = () => {
+        if (window.UptolinkV12Executed) return;
 
         const currentURL = window.location.href;
 
-        // BƯỚC A: KIỂM TRA TRANG HƯỚNG DẪN (linkhuongdan.online)
-        if (currentURL.includes('linkhuongdan.online')) {
-            
-            // 1. Check lỗi hết mã (No Traffic)
-            if (currentURL.includes('qq=notraffic')) {
-                window.UptolinkMasterExecuted = true;
-                clearInterval(masterScanner);
-                alert("🚨 UPTOLINK HẾT MÃ (No Traffic)! Vui lòng bỏ camp này.");
-                return;
-            }
-
-            // 2. Nếu trạng thái hợp lệ (qq=complete) -> Tự động bốc từ khóa Quest để đi làm nhiệm vụ
-            if (currentURL.includes('qq=complete')) {
-                // Quét tìm từ khóa màu đỏ (Ví dụ: UY88) như trong ảnh bạn chụp
-                const redElements = document.querySelectorAll('[style*="color: red"], [style*="color: #ff0000"], [style*="color:#ff0000"]');
-                let keyword = "";
-                
-                for (let elem of redElements) {
-                    const text = elem.innerText.trim();
-                    if (text && text.length < 15) { // Từ khóa nhà cái thường ngắn
-                        keyword = text;
-                        break;
-                    }
-                }
-
-                if (keyword && !window.HasAlertedQuest) {
-                    window.HasAlertedQuest = true;
-                    console.log(`[Ghost] Đã tìm thấy từ khóa Quest: ${keyword}`);
-                    // Hiển thị thông báo nhắc bạn từ khóa để bạn vào thẳng trang web đó cho nhanh, đỡ phải gõ Google
-                    // Ví dụ: Tìm chữ UY88 thì bạn gõ thẳng uy88vnn.com hoặc uy88.com trên tab đó luôn
-                    alert(`🎯 TỪ KHÓA LẤY MÃ: ${keyword}\n Hãy truy cập thẳng vào trang web của từ khóa này để lấy mã nhé!`);
-                }
-                return;
-            }
+        // KIỂM TRA TRANG HƯỚNG DẪN (NÉ LỖI HẾT MÃ)
+        if (currentURL.includes('linkhuongdan.online') && currentURL.includes('qq=notraffic')) {
+            window.UptolinkV12Executed = true;
+            clearInterval(classScanner);
+            alert("🚨 HỆ THỐNG BÁO: UPTOLINK ĐÃ HẾT MÃ (No Traffic)!");
+            return;
         }
 
-        // BƯỚC B: XỬ LÝ TRÊN TRANG ĐÍCH NHIỆM VỤ (Ví dụ: meobet-88, uy88...)
-        const targetBtn = document.getElementById('countdownBtn');
-        if (!targetBtn) return;
+        // TÌM THẺ COUNTDOWN THEO PHÁT HIỆN MỚI CỦA BẠN
+        const targetSpan = document.querySelector('.countdown');
+        if (!targetSpan) return;
 
-        const btnText = targetBtn.innerText.toUpperCase();
-        const matchSecond = btnText.match(/(\d+)\s*S/);
+        const spanText = targetSpan.innerText.toUpperCase().trim();
+        
+        // Đọc số giây đang chạy ngầm trong thẻ span (ví dụ: "VUI LÒNG ĐỢI 45S" hoặc "45")
+        const matchSecond = spanText.match(/(\d+)/);
 
-        // Trường hợp đang đếm giây
-        if (matchSecond) {
+        if (matchSecond && (spanText.includes('S') || spanText.length <= 3)) {
             const seconds = parseInt(matchSecond[1], 10);
-            console.log(`[Ghost] Đang theo dõi đếm giây: ${seconds}s`);
-            return; // Để yên cho giây chạy ngầm
+            console.log(`[Ghost v12] Thẻ .countdown đang nhảy giây: ${seconds}s`);
+            return; // Giữ im lặng cho giây chạy xong mượt mà
         }
 
-        // TRƯỜNG HỢP 1: Đợi hết giây dài (>50s) và xuất hiện chữ bắt Click Link để F5 sang Bước 2
-        if (btnText.includes("NHẤN LINK") || btnText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
-            console.log("[Ghost] Trạng thái chờ click link quảng cáo để F5.");
+        // TRƯỜNG HỢP 1: Chờ click link nhiệm vụ để kích hoạt F5 (Áp dụng khi chữ bắt đầu đổi)
+        if (spanText.includes("NHẤN LINK") || spanText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
+            console.log("[Ghost v12] Đang chờ bạn tương tác link quảng cáo để F5 sang Bước 2...");
             
-            // Lắng nghe hành vi khi bạn click vào màn hình (bấm quảng cáo)
             window.addEventListener('blur', () => {
-                window.UptolinkMasterExecuted = true;
-                clearInterval(masterScanner);
+                window.UptolinkV12Executed = true;
+                clearInterval(classScanner);
                 setTimeout(() => {
-                    console.log("[Ghost] Ép F5 tự động để nạp Bước 2...");
+                    console.log("[Ghost v12] Tự động F5 để kích hoạt Bước tiếp theo...");
                     location.reload();
                 }, 1200);
             }, { once: true });
             return;
         }
 
-        // TRƯỜNG HỢP 2: NÚT SẴN SÀNG BẤM PHÁT QUYẾT ĐỊNH (STEP 1, STEP 2, LẤY MÃ...)
-        if (btnText.includes('STEP') || btnText.includes('BƯỚC') || btnText.includes('LẤY MÃ') || btnText.includes('CLICK')) {
-            window.UptolinkMasterExecuted = true;
-            clearInterval(masterScanner);
+        // TRƯỜNG HỢP 2: NÚT ĐÃ SẴN SÀNG ĐỂ BẤM (NHẤN ĐỂ TIẾP TỤC, CLICK HERE, STEP 1, LẤY MÃ...)
+        if (spanText.includes('NHẤN') || spanText.includes('TIẾP TỤC') || spanText.includes('STEP') || spanText.includes('BƯỚC') || spanText.includes('CLICK')) {
+            window.UptolinkV12Executed = true;
+            clearInterval(classScanner);
 
-            // Tạo độ trễ ngẫu nhiên mô phỏng tay người thật (1.2s - 2.2s)
-            const randomDelay = getRandomInt(1200, 2200);
-            console.log(`[Ghost] Nút đã sẵn sàng! Bấm sau ${randomDelay}ms...`);
+            // Phản xạ delay ngẫu nhiên cực chuẩn con người (1s - 2s)
+            const randomDelay = getRandomInt(1000, 2000);
+            console.log(`[Ghost v12] Đã bắt được chữ '${spanText}'. Sẽ tự động bấm sau ${randomDelay}ms...`);
 
             setTimeout(() => {
-                simulateHumanClick(targetBtn);
+                simulateHumanClick(targetSpan);
                 
-                // Mở khóa lại sau 4 giây đề phòng hệ thống phản hồi chậm hoặc có Step tiếp theo
+                // Mở khóa lại sau 4 giây đề phòng hệ thống yêu cầu nhiều Step liên tiếp
                 setTimeout(() => {
-                    window.UptolinkMasterExecuted = false;
+                    window.UptolinkV12Executed = false;
                     if (!window.location.href.includes('finish')) {
-                        masterScanner = setInterval(mainDriver, 1200);
+                        classScanner = setInterval(monitorCountdownClass, 1200);
                     }
                 }, 4000);
 
@@ -126,7 +98,7 @@
         }
     };
 
-    // Kích hoạt bộ quét thưa siêu nhẹ máy
-    let masterScanner = setInterval(mainDriver, 1200);
+    // Quét liên tục mỗi 1.2 giây để bám sát trạng thái thẻ span (.countdown)
+    let classScanner = setInterval(monitorCountdownClass, 1200);
 
 })();
