@@ -1,16 +1,18 @@
 /**
- * Script: Uptolink Ghost Dynamic Target
- * File: auto-uptolink.js (Bản v1.8 - Click bọc hai tầng, Tự bốc từ khóa Quest)
+ * Script: Uptolink Ghost Session Keeper
+ * File: auto-uptolink.js (Bản v1.9 - Chống đóng băng tab & Né bẫy 404 Timeout)
  */
 
 (function() {
     'use strict';
 
-    if (window.UptolinkV14Executed) return;
+    if (window.UptolinkV14_2Executed) return;
 
-    // 1. GIẢ LẬP NGƯỜI THẬT (CLICK LỆCH TÂM NGẪU NHIÊN)
+    // Lưu mốc thời gian lúc bắt đầu nạp trang
+    const pageLoadTime = Date.now();
+
+    // 1. GIẢ LẬP NGƯỜI THẬT CLICK LỆCH TÂM
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
     const simulateHumanClick = (element) => {
         try {
             const rect = element.getBoundingClientRect();
@@ -24,28 +26,38 @@
                     clientX: clientX, clientY: clientY
                 }));
             });
-        } catch (err) {
-            console.error("[Ghost v14] Lỗi click phần tử:", err);
-        }
+        } catch (err) {}
     };
 
-    // 2. CORE LOGIC ĐIỀU KHIỂN
+    // 2. CHỐNG ĐÓNG BĂNG TAB KHI OUT NỀN (KEEP-ALIVE)
+    // Đè lên cơ chế check ẩn tab của tụi nó, luôn báo cáo là người dùng đang nhìn vào màn hình
+    Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+    Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+
     const masterDriver = () => {
-        if (window.UptolinkV14Executed) return;
+        if (window.UptolinkV14_2Executed) return;
 
         const currentURL = window.location.href;
 
-        // ================= BƯỚC A: XỬ LÝ TRÊN TRANG HƯỚNG DẪN =================
+        // KIỂM TRA BẪY TIMEOUT (Nếu ngâm tab quá 3 phút, tự F5 nạp lại Token mới cho an toàn)
+        if (Date.now() - pageLoadTime > 180000) {
+            window.UptolinkV14_2Executed = true;
+            clearInterval(engineScanner);
+            console.log("[Ghost v14.2] Tab ngâm quá lâu, tự động F5 để tránh bẫy 404...");
+            location.reload();
+            return;
+        }
+
+        // TRANG HƯỚNG DẪN (TỰ BỐC TỪ KHÓA)
         if (currentURL.includes('linkhuongdan.online')) {
             if (currentURL.includes('qq=notraffic')) {
-                window.UptolinkV14Executed = true;
+                window.UptolinkV14_2Executed = true;
                 clearInterval(engineScanner);
                 alert("🚨 HỆ THỐNG BÁO: UPTOLINK ĐÃ HẾT MÃ (No Traffic)!");
                 return;
             }
 
             if (currentURL.includes('qq=complete') && !window.HasAlertedQuest) {
-                // Quét tìm chính xác thẻ màu đỏ chứa từ khóa lấy mã (như chữ UY88 trong ảnh)
                 const redElements = document.querySelectorAll('[style*="color: red"], [style*="color: #ff0000"], [style*="color:#ff0000"]');
                 let keyword = "";
                 for (let elem of redElements) {
@@ -57,61 +69,52 @@
                 }
                 if (keyword) {
                     window.HasAlertedQuest = true;
-                    console.log(`%c[Ghost v14] Đã bắt được từ khóa: ${keyword}`, "color: #00ffff");
                     alert(`🎯 TỪ KHÓA NHIỆM VỤ: ${keyword}\n-> Hãy vào web của từ khóa này để lấy mã!`);
                 }
                 return;
             }
         }
 
-        // ================= BƯỚC B: XỬ LÝ TRÊN TRANG ĐÍCH NHIỆM VỤ =================
+        // TRANG ĐÍCH NHIỆM VỤ (.countdown bọc trong #countdownBtn)
         const targetSpan = document.querySelector('.countdown');
         const targetBtn = document.getElementById('countdownBtn');
         
-        // Nếu không có nút lấy mã thì bỏ qua
         if (!targetSpan || !targetBtn) return;
 
         const spanText = targetSpan.innerText.toUpperCase().trim();
         
-        // Kiểm tra xem nút có đang ở trạng thái đếm giây hay không
+        // Đang đếm giây hoặc đang loading thì bỏ qua
         const matchSecond = spanText.match(/(\d+)/);
         if (matchSecond && (spanText.includes('S') || spanText.length <= 3 || targetBtn.className.includes('loading'))) {
-            console.log(`[Ghost v14] Hệ thống đang đếm giây ngầm hoặc đang loading: ${spanText}`);
-            return; // Đứng im chờ đợi dữ liệu nạp xong
+            return;
         }
 
-        // TRƯỜNG HỢP 1: Chờ click link quảng cáo để F5 (Khi hết giây dài)
+        // Chờ click link quảng cáo để F5
         if (spanText.includes("NHẤN LINK") || spanText.includes("CLICK LINK") || document.body.innerText.toUpperCase().includes("NHẤN LINK BẤT KỲ")) {
-            console.log("[Ghost v14] Phát hiện trạng thái chờ tương tác để F5...");
             window.addEventListener('blur', () => {
-                window.UptolinkV14Executed = true;
+                window.UptolinkV14_2Executed = true;
                 clearInterval(engineScanner);
-                setTimeout(() => {
-                    location.reload();
-                }, 1200);
+                setTimeout(() => { location.reload(); }, 1200);
             }, { once: true });
             return;
         }
 
-        // TRƯỜNG HỢP 2: NÚT SẴN SÀNG (LẤY MÃ STEP 1, NHẤN ĐỂ TIẾP TỤC...)
+        // NÚT SẴN SÀNG CLICK
         if (spanText.includes('LẤY MÃ') || spanText.includes('STEP') || spanText.includes('BƯỚC') || spanText.includes('NHẤN') || spanText.includes('TIẾP TỤC')) {
-            window.UptolinkV14Executed = true;
+            window.UptolinkV14_2Executed = true;
             clearInterval(engineScanner);
 
             const randomDelay = getRandomInt(1200, 2000);
-            console.log(`%c[✓] NHẮM TRÚNG MỤC TIÊU: "${spanText}". Kích nổ sau ${randomDelay}ms...`, "color: #00ff00");
+            console.log(`%c[✓] Click bọc sườn kích hoạt sau ${randomDelay}ms...`, "color: #00ff00");
 
             setTimeout(() => {
-                // TẤN CÔNG ĐA TẦNG: Click cả thẻ cha lẫn thẻ con để không thể thoát được sự kiện
                 simulateHumanClick(targetSpan);
                 setTimeout(() => {
                     simulateHumanClick(targetBtn);
-                    console.log("[Ghost v14] Đã nạp thành công cú click bọc sườn!");
                 }, 50);
                 
-                // Mở khóa lại sau 4 giây phòng trường hợp nhiều Step liên tục
                 setTimeout(() => {
-                    window.UptolinkV14Executed = false;
+                    window.UptolinkV14_2Executed = false;
                     if (!window.location.href.includes('finish')) {
                         engineScanner = setInterval(masterDriver, 1200);
                     }
@@ -121,7 +124,6 @@
         }
     };
 
-    // Khởi chạy bộ quét kiểm soát trận địa
     let engineScanner = setInterval(masterDriver, 1200);
 
 })();
