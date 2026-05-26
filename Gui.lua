@@ -924,3 +924,168 @@ function Update:Window(Config)
 					UpdateSlider(input)
 				end
 			end)
+			UserInputService.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					Sliding = false
+				end
+			end)
+			UserInputService.InputChanged:Connect(function(input)
+				if Sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+					UpdateSlider(input)
+				end
+			end)
+		end
+		function main:Textbox(text, disappear, callback)
+			local Textbox = Instance.new("Frame")
+			Textbox.Name = "Textbox"
+			Textbox.Parent = MainFramePage
+			Textbox.BackgroundColor3 = _G.Primary
+			Textbox.BackgroundTransparency = 0.8
+			Textbox.Size = UDim2.new(1, 0, 0, 35)
+			CreateRounded(Textbox, 5)
+			local TextboxLabel = Instance.new("TextLabel")
+			TextboxLabel.Name = "TextboxLabel"
+			TextboxLabel.Parent = Textbox
+			TextboxLabel.BackgroundColor3 = _G.Primary
+			TextboxLabel.BackgroundTransparency = 1
+			TextboxLabel.Position = UDim2.new(0, 15, 0.5, 0)
+			TextboxLabel.Text = text
+			TextboxLabel.Size = UDim2.new(0.6, 0, 0.8, 0)
+			TextboxLabel.Font = Enum.Font.Nunito
+			TextboxLabel.AnchorPoint = Vector2.new(0, 0.5)
+			TextboxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			TextboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+			scaleText(TextboxLabel, 15)
+			local RealTextbox = Instance.new("TextBox")
+			RealTextbox.Name = "RealTextbox"
+			RealTextbox.Parent = Textbox
+			RealTextbox.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+			RealTextbox.BackgroundTransparency = 0.8
+			RealTextbox.Position = UDim2.new(1, -5, 0.5, 0)
+			RealTextbox.AnchorPoint = Vector2.new(1, 0.5)
+			RealTextbox.Size = UDim2.new(0, 80, 0, 25)
+			RealTextbox.Font = Enum.Font.Gotham
+			RealTextbox.Text = ""
+			RealTextbox.TextColor3 = Color3.fromRGB(225, 225, 225)
+			scaleText(RealTextbox, 11)
+			RealTextbox.ClipsDescendants = true
+			CreateRounded(RealTextbox, 5)
+			RealTextbox.FocusLost:Connect(function(enterPressed)
+				pcall(callback, RealTextbox.Text)
+				if disappear then
+					RealTextbox.Text = ""
+				end
+			end)
+		end
+		function main:Label(text)
+			local Frame = Instance.new("Frame")
+			Frame.Name = "Frame"
+			Frame.Parent = MainFramePage
+			Frame.BackgroundColor3 = _G.Primary
+			Frame.BackgroundTransparency = 1
+			Frame.Size = UDim2.new(1, 0, 0, 30)
+			local Label = Instance.new("TextLabel")
+			Label.Name = "Label"
+			Label.Parent = Frame
+			Label.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Label.BackgroundTransparency = 1
+			Label.Size = UDim2.new(1, -35, 0.8, 0)
+			Label.Font = Enum.Font.Nunito
+			Label.Position = UDim2.new(0, 30, 0.5, 0)
+			Label.AnchorPoint = Vector2.new(0, 0.5)
+			Label.TextColor3 = Color3.fromRGB(225, 225, 225)
+			Label.Text = text
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			scaleText(Label, 15)
+			local ImageLabel = Instance.new("ImageLabel")
+			ImageLabel.Name = "ImageLabel"
+			ImageLabel.Parent = Frame
+			ImageLabel.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+			ImageLabel.BackgroundTransparency = 1
+			ImageLabel.Position = UDim2.new(0, 10, 0.5, 0)
+			ImageLabel.Size = UDim2.new(0, 14, 0, 14)
+			ImageLabel.AnchorPoint = Vector2.new(0, 0.5)
+			ImageLabel.Image = "rbxassetid://10723415903"
+			ImageLabel.ImageColor3 = Color3.fromRGB(200, 200, 200)
+			local labelfunc = {}
+			function labelfunc:Set(newtext)
+				Label.Text = newtext
+			end
+			return labelfunc
+		end
+		function main:Seperator(text)
+			local Seperator = Instance.new("Frame")
+			Seperator.Name = "Seperator"
+			Seperator.Parent = MainFramePage
+			Seperator.BackgroundColor3 = _G.Primary
+			Seperator.BackgroundTransparency = 1
+			Seperator.Size = UDim2.new(1, 0, 0, 36)
+			local Sep1 = Instance.new("TextLabel")
+			Sep1.Name = "Sep1"
+			Sep1.Parent = Seperator
+			Sep1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Sep1.BackgroundTransparency = 1
+			Sep1.AnchorPoint = Vector2.new(0, 0.5)
+			Sep1.Position = UDim2.new(0, 0, 0.5, 0)
+			Sep1.Size = UDim2.new(0, 20, 0, 36)
+			Sep1.Font = Enum.Font.GothamBold
+			Sep1.RichText = true
+			Sep1.Text = "«<font color=\"rgb(255, 0, 0)\">«</font>"
+			Sep1.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Sep1.TextSize = 14
+			local Sep2 = Instance.new("TextLabel")
+			Sep2.Name = "Sep2"
+			Sep2.Parent = Seperator
+			Sep2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Sep2.BackgroundTransparency = 1
+			Sep2.AnchorPoint = Vector2.new(0.5, 0.5)
+			Sep2.Position = UDim2.new(0.5, 0, 0.5, 0)
+			Sep2.Size = UDim2.new(1, 0, 0, 36)
+			Sep2.Font = Enum.Font.GothamBold
+			Sep2.Text = text
+			Sep2.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Sep2.TextSize = 14
+			local Sep3 = Instance.new("TextLabel")
+			Sep3.Name = "Sep3"
+			Sep3.Parent = Seperator
+			Sep3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Sep3.BackgroundTransparency = 1
+			Sep3.AnchorPoint = Vector2.new(1, 0.5)
+			Sep3.Position = UDim2.new(1, 0, 0.5, 0)
+			Sep3.Size = UDim2.new(0, 20, 0, 36)
+			Sep3.Font = Enum.Font.GothamBold
+			Sep3.RichText = true
+			Sep3.Text = "<font color=\"rgb(255, 0, 0)\">»</font>»"
+			Sep3.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Sep3.TextSize = 14
+		end
+		function main:Line()
+			local Linee = Instance.new("Frame")
+			Linee.Name = "Linee"
+			Linee.Parent = MainFramePage
+			Linee.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Linee.BackgroundTransparency = 1
+			Linee.Position = UDim2.new(0, 0, 0.12, 0)
+			Linee.Size = UDim2.new(1, 0, 0, 20)
+			local Line = Instance.new("Frame")
+			Line.Name = "Line"
+			Line.Parent = Linee
+			Line.BackgroundColor3 = Color3.new(125, 125, 125)
+			Line.BorderSizePixel = 0
+			Line.Position = UDim2.new(0, 0, 0, 10)
+			Line.Size = UDim2.new(1, 0, 0, 1)
+			local UIGradient = Instance.new("UIGradient")
+			UIGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, _G.Dark),
+				ColorSequenceKeypoint.new(0.4, _G.Primary),
+				ColorSequenceKeypoint.new(0.5, _G.Primary),
+				ColorSequenceKeypoint.new(0.6, _G.Primary),
+				ColorSequenceKeypoint.new(1, _G.Dark)
+			})
+			UIGradient.Parent = Line
+		end
+		return main
+	end
+	return uitab
+end
+return Update
