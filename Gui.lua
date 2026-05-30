@@ -126,14 +126,31 @@ function TCH:Window(cfg)
 		if not wnd.CurrentTab then selectTab() end
 
 		-- ... (Rest of the tab elements remain the same)
-        function tab:Label(txt)
-            local sec = C("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, -16, 0, 30), Parent = page,
-                C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = string.upper(txt), TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = nil}), -- Parent sẽ gán dưới
-                C("Frame", {BackgroundColor3 = wnd.ThemeCol, Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -5), BorderSizePixel = 0, Parent = nil})
-        })
-        
-	    sec:GetChildren()[2].Parent = sec -- TextLabel
-        sec:GetChildren()[3].Parent = sec -- Gạch chân (Frame)
+function tab:Label(txt)
+    local sec = C("Frame", {
+        BackgroundTransparency = 1, 
+        Size = UDim2.new(1, -16, 0, 30), 
+        Parent = page
+    })
+
+    C("TextLabel", {
+        BackgroundTransparency = 1, 
+        Size = UDim2.new(1, 0, 1, -5),
+        Text = string.upper(txt), 
+        TextColor3 = wnd.ThemeCol, 
+        Font = Enum.Font.GothamBold, 
+        TextSize = 12, 
+        TextXAlignment = Enum.TextXAlignment.Left, 
+        Parent = sec
+    })
+
+    C("Frame", {
+        BackgroundColor3 = wnd.ThemeCol, 
+        Size = UDim2.new(1, 0, 0, 1), 
+        Position = UDim2.new(0, 0, 1, -5), 
+        BorderSizePixel = 0, 
+        Parent = sec
+    })
 		end
 		function tab:Button(txt, cb)
 			local btn = C("TextButton", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 35), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, AutoButtonColor = false, Parent = page,
