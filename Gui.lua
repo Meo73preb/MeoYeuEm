@@ -126,7 +126,7 @@ function TCH:Window(cfg)
 		if not wnd.CurrentTab then selectTab() end
 
 		-- ... (Rest of the tab elements remain the same)
-        function tab:Section(txt)
+        function tab:Label(txt)
             local sec = C("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, -16, 0, 30), Parent = page,
                 C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = string.upper(txt), TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = nil}), -- Parent sẽ gán dưới
                 C("Frame", {BackgroundColor3 = wnd.ThemeCol, Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -5), BorderSizePixel = 0, Parent = nil})
