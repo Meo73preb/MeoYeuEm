@@ -126,33 +126,15 @@ function TCH:Window(cfg)
 		if not wnd.CurrentTab then selectTab() end
 
 		-- ... (Rest of the tab elements remain the same)
-    function tab:Label(txt, default, cb)
-    local state = default or false
-    
-    -- Container để chứa Label và Toggle cùng 1 dòng
-    local container = C("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, -16, 0, 30), Parent = page})
-    
-    -- Label nằm bên trái
-    C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(0.7, 0, 1, 0), Text = txt, TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, Parent = container})
-    
-    -- Toggle nằm bên phải
-    local tgl = C("TextButton", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(0, 40, 0, 20), Position = UDim2.new(1, -40, 0.5, -10), Text = "", AutoButtonColor = false, Parent = container,
-        C("UICorner", {CornerRadius = UDim.new(0, 4)}),
-        C("UIStroke", {Color = Color3.fromRGB(50, 50, 50), Thickness = 1})
-    })
-    
-    local check = C("Frame", {BackgroundColor3 = state and wnd.ThemeCol or Color3.fromRGB(50, 50, 50), Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(state and 0.55 or 0.1, 0, 0.15, 0), Parent = tgl,
-        C("UICorner", {CornerRadius = UDim.new(0, 2)})
-    })
-
-    tgl.MouseButton1Click:Connect(function()
-        state = not state
-        check.Position = UDim2.new(state and 0.55 or 0.1, 0, 0.15, 0)
-        check.BackgroundColor3 = state and wnd.ThemeCol or Color3.fromRGB(50, 50, 50)
-        pcall(cb, state)
-    end)
+        function tab:Section(txt)
+            local sec = C("Frame", {BackgroundTransparency = 1, Size = UDim2.new(1, -16, 0, 30), Parent = page,
+                C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = string.upper(txt), TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = nil}), -- Parent sẽ gán dưới
+                C("Frame", {BackgroundColor3 = wnd.ThemeCol, Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -5), BorderSizePixel = 0, Parent = nil})
+        })
+        
+	    sec:GetChildren()[2].Parent = sec -- TextLabel
+        sec:GetChildren()[3].Parent = sec -- Gạch chân (Frame)
 		end
-
 		function tab:Button(txt, cb)
 			local btn = C("TextButton", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 35), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, AutoButtonColor = false, Parent = page,
 				C("UICorner", {CornerRadius = UDim.new(0, 4)}),
