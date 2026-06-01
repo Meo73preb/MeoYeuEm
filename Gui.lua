@@ -205,6 +205,63 @@ function tab:Label(txt)
         end
     end)
 		end
+		
+		function tab:Dropdown(txt, options, multi, cb)
+    local selected = multi and {} or nil
+    local open = false
+    
+    local getTxt = function()
+        if not multi then return selected or "Chưa chọn" end
+        local s = ""
+        for k, _ in pairs(selected) do s = s .. k .. ", " end
+        return s == "" and "Chưa chọn" or s:sub(1, -3)
+    end
+
+    local drp = C("Frame", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 35), Parent = page, ClipsDescendants = true,
+        C("UICorner", {CornerRadius = UDim.new(0, 4)}),
+        C("UIStroke", {Color = Color3.fromRGB(50, 50, 50), Thickness = 1})
+    })
+    
+    local dBtn = C("TextButton", {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 35), Text = "", Parent = drp,
+        C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.new(0, 10, 0, 0), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left}),
+        C("TextLabel", {Name = "Val", BackgroundTransparency = 1, Size = UDim2.new(0.5, -30, 1, 0), Position = UDim2.new(0.5, 0, 0, 0), Text = getTxt(), TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd})
+    })
+
+    local list = C("ScrollingFrame", {BackgroundColor3 = Color3.fromRGB(20, 20, 20), Size = UDim2.new(1, -10, 0, 100), Position = UDim2.new(0, 5, 0, 40), CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 2, Parent = drp,
+        C("UIListLayout", {Padding = UDim.new(0, 2)}),
+        C("UICorner", {CornerRadius = UDim.new(0, 4)})
+    })
+
+    local function render()
+        for _, v in pairs(list:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        for _, opt in ipairs(options) do
+            local isSel = multi and selected[opt] or selected == opt
+            local iBtn = C("TextButton", {BackgroundColor3 = isSel and wnd.ThemeCol or Color3.fromRGB(25, 25, 25), Size = UDim2.new(1, 0, 0, 25), Text = opt, TextColor3 = isSel and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(200, 200, 200), Font = Enum.Font.Gotham, TextSize = 13, AutoButtonColor = false, Parent = list,
+                C("UICorner", {CornerRadius = UDim.new(0, 2)})
+            })
+            iBtn.MouseButton1Click:Connect(function()
+                if multi then
+                    if selected[opt] then selected[opt] = nil else selected[opt] = true end
+                else
+                    selected = opt
+                    open = false
+                    drp.Size = UDim2.new(1, -16, 0, 35)
+                end
+                dBtn.Val.Text = getTxt()
+                render()
+                pcall(cb, selected)
+            end)
+        end
+    end
+
+    dBtn.MouseButton1Click:Connect(function()
+        open = not open
+        drp.Size = UDim2.new(1, -16, 0, open and 145 or 35)
+    end)
+
+    render()
+		end
+		
 		function tab:Button(txt, cb)
 			local btn = C("TextButton", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 35), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, AutoButtonColor = false, Parent = page,
 				C("UICorner", {CornerRadius = UDim.new(0, 4)}),
