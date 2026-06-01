@@ -152,6 +152,59 @@ function tab:Label(txt)
         Parent = sec
     })
 		end
+		
+		function tab:Slider(txt, min, max, default, cb)
+    local val = default or min
+    local sld = C("Frame", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 50), Parent = page,
+        C("UICorner", {CornerRadius = UDim.new(0, 4)}),
+        C("UIStroke", {Color = Color3.fromRGB(50, 50, 50), Thickness = 1}),
+        C("TextLabel", {BackgroundTransparency = 1, Size = UDim2.new(1, -60, 0, 25), Position = UDim2.new(0, 10, 0, 0), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left})
+    })
+    
+    local box = C("TextBox", {BackgroundColor3 = Color3.fromRGB(15, 15, 15), Size = UDim2.new(0, 40, 0, 20), Position = UDim2.new(1, -50, 0, 2), Text = tostring(val), TextColor3 = wnd.ThemeCol, Font = Enum.Font.GothamBold, TextSize = 13, Parent = sld,
+        C("UICorner", {CornerRadius = UDim.new(0, 4)})
+    })
+
+    local track = C("Frame", {BackgroundColor3 = Color3.fromRGB(15, 15, 15), Size = UDim2.new(1, -20, 0, 8), Position = UDim2.new(0, 10, 0, 32), Parent = sld,
+        C("UICorner", {CornerRadius = UDim.new(1, 0)})
+    })
+    local fill = C("Frame", {BackgroundColor3 = wnd.ThemeCol, Size = UDim2.new((val - min) / (max - min), 0, 1, 0), Parent = track,
+        C("UICorner", {CornerRadius = UDim.new(1, 0)})
+    })
+
+    local function update(input)
+        local pct = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+        val = math.floor(min + (max - min) * pct)
+        fill.Size = UDim2.new(pct, 0, 1, 0)
+        box.Text = tostring(val)
+        pcall(cb, val)
+    end
+
+    local sliding = false
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true; update(input)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end
+    end)
+
+    box.FocusLost:Connect(function()
+        local n = tonumber(box.Text)
+        if n then
+            val = math.clamp(n, min, max)
+            fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0)
+            box.Text = tostring(val)
+            pcall(cb, val)
+        else
+            box.Text = tostring(val)
+        end
+    end)
+		end
 		function tab:Button(txt, cb)
 			local btn = C("TextButton", {BackgroundColor3 = Color3.fromRGB(30, 30, 30), Size = UDim2.new(1, -16, 0, 35), Text = txt, TextColor3 = Color3.fromRGB(220, 220, 220), Font = Enum.Font.Gotham, TextSize = 14, AutoButtonColor = false, Parent = page,
 				C("UICorner", {CornerRadius = UDim.new(0, 4)}),
