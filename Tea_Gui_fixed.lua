@@ -6,8 +6,8 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
-local function clamp(value, minimum, maximum)
-    return math.max(minimum, math.min(maximum, value))
+if not math.clamp then
+    math.clamp = function(x, min, max) return math.max(min, math.min(max, x)) end
 end
 
 local function getTargetParent()
