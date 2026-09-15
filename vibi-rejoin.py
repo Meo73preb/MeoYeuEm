@@ -20,7 +20,7 @@ TARGET_COOKIES_DB = f"/data/data/{ROBLOX_PACKAGE}/app_webview/Default/Cookies"
 def run_root_cmd(cmd):
     """Chạy lệnh Shell dưới quyền Root (su)"""
     try:
-        result = subprocess.run(f"su -c '{cmd}'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(f"su -c \"{cmd}\"", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return result.stdout.strip()
     except Exception as e:
         print(f"[!] Lỗi khi chạy lệnh root: {e}")
@@ -59,7 +59,7 @@ def get_cookie():
 
 def validate_cookie(cookie):
     """Kiểm tra Cookie qua API Roblox và lấy UserID, Username"""
-    url = "https://users.roblox.com/v1/users/authenticated"
+    url = "https://roblox.com"
     headers = {
         "User-Agent": "Mozilla/5.0 (Android; Mobile)",
         "Cookie": f".ROBLOSECURITY={cookie}"
@@ -90,7 +90,8 @@ def login_with_cookie():
         return
 
     print(f"[+] Xác thực thành công: {username} (ID: {user_id})")
-
+    
+    time.sleep(1)
     # 1. Tạo và Cập nhật file appStorage.json tạm thời
     temp_appstorage = os.path.join(SCRIPT_DIR, "temp_appStorage.json")
     if os.path.exists(APPSTORAGE_TEMPLATE):
@@ -137,37 +138,63 @@ def login_with_cookie():
 
     # 4. Mở Roblox và đưa về giao diện Home
     print("[*] Đang khởi chạy Roblox...")
+    time.sleep(1)
     run_root_cmd(f"monkey -p {ROBLOX_PACKAGE} -c android.intent.category.LAUNCHER 1")
-    
+    time.sleep(30)
+    kill_roblox()
     print("[+] Đăng nhập thành công! Hãy đợi Roblox load xong dữ liệu.")
 
 def rejoin_roblox():
-    """Chức năng Rejoin vào Game Roblox"""
-    place_id = input("Nhập Place ID (Game ID) muốn vào: ").strip()
-    if not place_id.isdigit():
-        print("[!] Place ID phải là dãy số.")
+    """Chức năng Rejoin vào Game Roblox (Hỗ trợ cả Server Thường và Server VIP)"""
+    print("\n--- CHỌN CHẾ ĐỘ REJOIN ---")
+    print("1. Vào Server Thường (Dùng Place ID)")
+    print("2. Vào Server VIP (Dùng Private/VIP Link)")
+    mode = input("Lựa chọn (1-2): ").strip()
+
+    if mode == "1":
+        place_id = input("Nhập Place ID (Game ID): ").strip()
+        if not place_id.isdigit():
+            print("[!] Place ID phải là dãy số.")
+            return
+        deep_link = f"https://roblox.com{place_id}"
+        print(f"[*] Đang chuẩn bị vào Server Thường (ID: {place_id})...")
+
+    elif mode == "2":
+        vip_link = input("Nhập/Dán link Server VIP: ").strip()
+        if "roblox.com" not in vip_link:
+            print("[!] Link không hợp lệ. Phải chứa đường dẫn roblox.com")
+            return
+        
+        # Nếu là link dạng share code cũ hoặc mới, Android Intent sẽ tự phân tách và điều hướng mở app
+        deep_link = vip_link
+        print(f"[*] Đang chuẩn bị vào Server VIP qua liên kết...")
+
+    else:
+        print("[!] Lựa chọn không hợp lệ.")
         return
 
     kill_roblox()
-    print(f"[*] Đang vào lại game (Place ID: {place_id})...")
+    time.sleep(1)
     
-    # Khởi chạy Roblox trực tiếp vào Game bằng Deep Link URL schema
-    cmd = f"am start -a android.intent.action.VIEW -d 'roblox://placeID={place_id}' -n {ROBLOX_PACKAGE}/com.roblox.client.ActivityProtocolLaunch"
+    # Thực hiện lệnh gọi deep-link để mở thẳng game
+    cmd = f"am start -a android.intent.action.VIEW -d '{deep_link}' {ROBLOX_PACKAGE}"
     run_root_cmd(cmd)
     print("[+] Đã gửi lệnh Rejoin Roblox thành công.")
 
 def main_menu():
     while True:
         print("\n=== ROBLOX TOOL FOR TERMUX (ROOT) ===")
-        print("1. Rejoin Roblox Mobile")
+        print("1. Rejoin Roblox Mobile (Thường & VIP)")
         print("2. Login bằng Cookie (từ download/cookie.txt)")
         print("0. Thoát")
         
         choice = input("Chọn chức năng (0-2): ").strip()
         if choice == "1":
+            os.system('clear')
             rejoin_roblox()
         elif choice == "2":
             login_with_cookie()
+            os.system('clear')
         elif choice == "0":
             print("Tạm biệt!")
             sys.exit(0)
