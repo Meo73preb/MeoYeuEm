@@ -1,19 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# ==========================================
-# AUTO SETUP ENVIRONMENT FOR TERMUX (ROOT)
-# ==========================================
-
 echo -e "\033[1;32m[*] Bắt đầu quá trình thiết lập tự động từ A-Z...\033[0m"
-
-# 1. Tự động chuyển đổi phản hồi sang 'Yes' mặc định cho apt/pkg
 export DEBIAN_FRONTEND=noninteractive
 
-# 2. Cấp quyền truy cập bộ nhớ SDCard
 echo -e "\033[1;34m[*] Yêu cầu quyền truy cập bộ nhớ internal storage...\033[0m"
 termux-setup-storage
 
-# 3. Cập nhật hệ thống và cài đặt các gói bắt buộc
 echo -e "\033[1;34m[*] Đang cập nhật hệ thống và cài đặt các gói cần thiết...\033[0m"
 pkg update -y -o Dpkg::Options::="--force-confold"
 pkg upgrade -y -o Dpkg::Options::="--force-confold"
@@ -21,28 +13,23 @@ pkg upgrade -y -o Dpkg::Options::="--force-confold"
 echo -e "\033[1;34m[*] Đang cài đặt python, sqlite, tsu, git, curl, wget...\033[0m"
 pkg install python sqlite tsu git curl wget -y
 
-# Cài đặt thư viện Python
-echo -e "\033[1;34m[*] Đang cài đặt các thư viện Python...\033[0m"
+echo -e "\033[1;34m[*] Đang cài đặt và cập nhật các thư viện Python (requests, websocket-client)...\033[0m"
 pip install --upgrade pip
-pip install requests
+pip install requests websocket-client
 
-# 4. Tạo thư mục chứa Tool
 TARGET_DIR="$HOME/vibi-tool"
 echo -e "\033[1;34m[*] Tạo thư mục làm việc tại: $TARGET_DIR\033[0m"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR" || exit 1
 
-# 5. Tải file vibi-rejoin.py từ Github (sử dụng link raw)
 RAW_GITHUB_URL="https://raw.githubusercontent.com/Meo73preb/MeoYeuEm/main/vibi-rejoin.py"
-echo -e "\033[1;34m[*] Đang tải vibi-rejoin.py từ GitHub...\033[0m"
+echo -e "\033[1;34m[*] Đang tải vibi-rejoin.py...\033[0m"
 curl -s -L "$RAW_GITHUB_URL" -o vibi-rejoin.py
 
-# Check xem file tải về có thành công không
 if [ ! -s vibi-rejoin.py ]; then
     echo -e "\033[1;31m[!] Tải file thất bại hoặc file rỗng! Vui lòng kiểm tra lại link GitHub.\033[0m"
 fi
 
-# 6. Tự động tạo file mẫu appStorage.json nếu chưa tồn tại
 if [ ! -f "appStorage.json" ]; then
     echo -e "\033[1;34m[*] Đang khởi tạo file mẫu appStorage.json...\033[0m"
     cat << 'EOF' > appStorage.json
@@ -54,7 +41,7 @@ if [ ! -f "appStorage.json" ]; then
 EOF
 fi
 
-# 7. Tự động tạo file SQLite Cookies.db nếu chưa tồn tại
+# Tạo file SQLite Cookies.db nếu chưa tồn tại [Quan Trọng!]
 if [ ! -f "Cookies.db" ]; then
     echo -e "\033[1;34m[*] Đang tạo cơ sở dữ liệu Cookies.db mẫu...\033[0m"
     sqlite3 Cookies.db << 'EOF'
@@ -105,7 +92,6 @@ INSERT INTO cookies VALUES(
 EOF
 fi
 
-# 8. Khởi tạo file cookie.txt ở bộ nhớ ngoài (/sdcard/Download)
 DOWNLOAD_DIR="/sdcard/Download"
 mkdir -p "$DOWNLOAD_DIR"
 if [ ! -f "$DOWNLOAD_DIR/cookie.txt" ]; then
@@ -113,8 +99,11 @@ if [ ! -f "$DOWNLOAD_DIR/cookie.txt" ]; then
     echo -e "\033[1;34m[*] Đã tạo file rỗng tại: $DOWNLOAD_DIR/cookie.txt\033[0m"
 fi
 
-echo -e "\033[1;32m==================================================\033[0m"
+if [ ! -f "$DOWNLOAD_DIR/discord_token.txt" ]; then
+    touch "$DOWNLOAD_DIR/discord_token.txt"
+    echo -e "\033[1;34m[*] Đã tạo file rỗng tại: $DOWNLOAD_DIR/discord_token.txt\033[0m"
+fi
+
 echo -e "\033[1;32m[✓] HOÀN TẤT CÀI ĐẶT TỰ ĐỘNG A-Z!\033[0m"
-echo -e "\033[1;33mĐể bắt đầu sử dụng, hãy nhập các lệnh sau:\033[0m"
-echo -e "\033[1;36m  cd ~/vibi-tool && su -c 'python vibi-rejoin.py'\033[0m"
-echo -e "\033[1;32m==================================================\033[0m"
+echo -e "\033[1;33mBây giờ bạn chỉ cần chạy lệnh sau để dùng tool:\033[0m"
+echo -e "\033[1;36m  cd ~/vibi-tool && python vibi-rejoin.py\033[0m"
