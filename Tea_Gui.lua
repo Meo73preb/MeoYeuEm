@@ -1,41 +1,108 @@
--- Tea GUI Library
--- Cleaned and repaired version.
-
+-- Tea Cat GUI Library - Beta v1.0
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
-if not math.clamp then
-    math.clamp = function(x, min, max) return math.max(min, math.min(max, x)) end
+local TCH = {}
+
+local Registry = {
+    nextId = 998,
+    entries = {},
+}
+
+function Registry:Create(kind, handlers)
+    self.nextId = self.nextId + 1
+    local id = string.format("%s:%x", tostring(kind or "control"), self.nextId)
+    self.entries[id] = {
+        kind = kind,
+        handlers = handlers or {},
+    }
+    return id
+end
+
+function Registry:Invoke(id, action, ...)
+    local entry = self.entries[id]
+    if not entry then return nil end
+    local handler = entry.handlers[action]
+    if type(handler) ~= "function" then return nil end
+    return handler(...)
+end
+
+function Registry:Remove(id)
+    self.entries[id] = nil
+end
+
+local activeWindow
+local activeGui
+local _math = math
+local _task = task
+local _coroutine = coroutine
+local _table = table
+
+local function clamp(value, minimum, maximum)
+    value = tonumber(value) or minimum
+    return _math.max(minimum, _math.min(maximum, value))
 end
 
 local function getTargetParent()
     local ok = pcall(function()
         return CoreGui.Name
     end)
-
     if ok then
         return CoreGui
     end
-
     return Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
 local TargetParent = getTargetParent()
 
--- Lifecycle được lưu theo target parent để các lần load lại cùng dùng chung trạng thái.
-local Lifecycle = {
-    Status = "idle", -- idle, loading, active, failed
-    Window = nil,
-    Gui = nil,
-}
+local function newMaid()
+    local maid = { tasks = {}, destroyed = false }
 
-local TCH = {}
+    function maid:Add(resource)
+        if resource == nil then return resource end
+        if self.destroyed then
+            self:_cleanupOne(resource)
+            return resource
+        end
+        _table.insert(self.tasks, resource)
+        return resource
+    end
+
+    function maid:_cleanupOne(resource)
+        local resourceType = type(resource)
+        if resourceType == "function" then
+            pcall(resource)
+        elseif resourceType == "thread" then
+            pcall(_task.cancel, resource)
+        elseif resourceType == "table" and type(resource.Destroy) == "function" then
+            pcall(function() resource:Destroy() end)
+        elseif resourceType == "userdata" then
+            pcall(function()
+                if resource.Disconnect then
+                    resource:Disconnect()
+                elseif resource.Destroy then
+                    resource:Destroy()
+                end
+            end)
+        end
+    end
+
+    function maid:Cleanup()
+        if self.destroyed then return end
+        self.destroyed = true
+        for index = #self.tasks, 1, -1 do
+            self:_cleanupOne(self.tasks[index])
+            self.tasks[index] = nil
+        end
+    end
+
+    return maid
+end
 
 local function create(className, properties)
     local instance = Instance.new(className)
-
     for key, value in pairs(properties or {}) do
         if type(key) == "number" then
             if typeof(value) == "Instance" then
@@ -45,58 +112,50 @@ local function create(className, properties)
             instance[key] = value
         end
     end
-
     return instance
 end
 
 local function safeCallback(callback, ...)
-    if type(callback) ~= "function" then
-        return
-    end
-
+    if type(callback) ~= "function" then return true end
     local ok, err = pcall(callback, ...)
     if not ok then
         warn("Tea GUI callback error: " .. tostring(err))
     end
+    return ok
 end
 
-local function makeDraggable(dragObject, moveObject)
+local function makeDraggable(maid, dragObject, moveObject)
     local dragging = false
     local dragInput
     local startInputPosition
     local startGuiPosition
 
-    dragObject.InputBegan:Connect(function(input)
+    maid:Add(dragObject.InputBegan:Connect(function(input)
         local inputType = input.UserInputType
         if inputType ~= Enum.UserInputType.MouseButton1
             and inputType ~= Enum.UserInputType.Touch then
             return
         end
-
         dragging = true
         startInputPosition = input.Position
         startGuiPosition = moveObject.Position
-
-        input.Changed:Connect(function()
+        maid:Add(input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
             end
-        end)
-    end)
+        end))
+    end))
 
-    dragObject.InputChanged:Connect(function(input)
+    maid:Add(dragObject.InputChanged:Connect(function(input)
         local inputType = input.UserInputType
         if inputType == Enum.UserInputType.MouseMovement
             or inputType == Enum.UserInputType.Touch then
             dragInput = input
         end
-    end)
+    end))
 
-    UserInputService.InputChanged:Connect(function(input)
-        if not dragging or input ~= dragInput then
-            return
-        end
-
+    maid:Add(UserInputService.InputChanged:Connect(function(input)
+        if not dragging or input ~= dragInput then return end
         local delta = input.Position - startInputPosition
         moveObject.Position = UDim2.new(
             startGuiPosition.X.Scale,
@@ -104,52 +163,31 @@ local function makeDraggable(dragObject, moveObject)
             startGuiPosition.Y.Scale,
             startGuiPosition.Y.Offset + delta.Y
         )
+    end))
+end
+
+local function addTween(maid, instance, info, properties)
+    local tween = TweenService:Create(instance, info, properties)
+    maid:Add(function()
+        pcall(function() tween:Cancel() end)
     end)
+    tween:Play()
+    return tween
 end
 
-local NotificationGui
-local NotificationContainer
-
-local function getNotificationContainer()
-    if NotificationContainer and NotificationContainer.Parent then
-        return NotificationContainer
-    end
-
-    NotificationGui = create("ScreenGui", {
-        Name = "TCHub_Noti",
-        ResetOnSpawn = false,
-        Parent = TargetParent,
-    })
-    NotificationContainer = create("Frame", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 300, 1, -40),
-        Position = UDim2.new(1, -15, 0, 20),
-        AnchorPoint = Vector2.new(1, 0),
-        Parent = NotificationGui,
-        create("UIListLayout", {
-            Padding = UDim.new(0, 10),
-            VerticalAlignment = Enum.VerticalAlignment.Bottom,
-            HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        }),
-    })
-    return NotificationContainer
-end
-
-function TCH:Notify(title, description, duration)
-    local notificationContainer = getNotificationContainer()
-    local theme = self.ThemeCol or Color3.fromRGB(0, 255, 128)
+local function buildNotification(window, title, description, duration)
     local notification = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(20, 20, 20),
         Size = UDim2.new(1, 0, 0, 60),
-        Parent = notificationContainer,
+        Parent = window.notificationContainer,
         create("UICorner", { CornerRadius = UDim.new(0, 4) }),
-        create("UIStroke", { Color = theme, Thickness = 1 }),
+        create("UIStroke", { Color = window.ThemeCol, Thickness = 1 }),
         create("TextLabel", {
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 10, 0, 5),
             Size = UDim2.new(1, -20, 0, 20),
             Text = tostring(title or "Thông báo"),
-            TextColor3 = theme,
+            TextColor3 = window.ThemeCol,
             Font = Enum.Font.GothamBold,
             TextSize = 16,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -166,31 +204,35 @@ function TCH:Notify(title, description, duration)
             TextWrapped = true,
         }),
     })
-
-    task.delay(tonumber(duration) or 3, function()
-        if notification and notification.Parent then
-            notification:Destroy()
-        end
+    window.maid:Add(notification)
+    local delayThread = _task.delay(_math.max(0, tonumber(duration) or 3), function()
+        if notification.Parent then notification:Destroy() end
     end)
+    window.maid:Add(delayThread)
 end
 
 local function createWindow(library, config)
     config = config or {}
-
+    local windowMaid = newMaid()
     local window = {
         Title = tostring(config.Title or "Tea Cat Hub"),
         ThemeCol = config.Color or Color3.fromRGB(0, 255, 128),
         Tabs = {},
         CurrentTab = nil,
+        maid = windowMaid,
+        destroyed = false,
+        notificationContainer = nil,
     }
-
     library.ThemeCol = window.ThemeCol
 
     local gui = create("ScreenGui", {
         Name = "TCHub",
         Parent = TargetParent,
         ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
     })
+    window.gui = gui
+    windowMaid:Add(gui)
 
     local main = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -219,11 +261,10 @@ local function createWindow(library, config)
             Image = "rbxassetid://13940080072",
         }),
     })
-
-    makeDraggable(floatButton, floatButton)
-    floatButton.MouseButton1Click:Connect(function()
-        main.Visible = not main.Visible
-    end)
+    makeDraggable(windowMaid, floatButton, floatButton)
+    windowMaid:Add(floatButton.MouseButton1Click:Connect(function()
+        if not window.destroyed then main.Visible = not main.Visible end
+    end))
 
     local top = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(12, 12, 12),
@@ -246,8 +287,7 @@ local function createWindow(library, config)
             BorderSizePixel = 0,
         }),
     })
-
-    makeDraggable(top, main)
+    makeDraggable(windowMaid, top, main)
 
     local tabContainer = create("ScrollingFrame", {
         BackgroundTransparency = 1,
@@ -264,7 +304,6 @@ local function createWindow(library, config)
             PaddingRight = UDim.new(0, 5),
         }),
     })
-
     local pageContainer = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(22, 22, 22),
         Size = UDim2.new(1, -120, 1, -36),
@@ -272,8 +311,38 @@ local function createWindow(library, config)
         Parent = main,
     })
 
+    local notificationGui = create("ScreenGui", {
+        Name = "TCHub_Noti",
+        Parent = TargetParent,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    local notificationContainer = create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 300, 1, -40),
+        Position = UDim2.new(1, -15, 0, 20),
+        AnchorPoint = Vector2.new(1, 0),
+        Parent = notificationGui,
+        create("UIListLayout", {
+            Padding = UDim.new(0, 10),
+            VerticalAlignment = Enum.VerticalAlignment.Bottom,
+            HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        }),
+    })
+    window.notificationContainer = notificationContainer
+    windowMaid:Add(notificationGui)
+
+    function window:Notify(title, description, duration)
+        if not self.destroyed then
+            buildNotification(self, title, description, duration)
+        end
+    end
+
     function window:Tab(name)
-        local tab = { Elements = {} }
+        if window.destroyed then return nil end
+        local tabMaid = newMaid()
+        windowMaid:Add(tabMaid)
+        local tab = { Elements = {}, maid = tabMaid, destroyed = false }
         local tabButton = create("TextButton", {
             BackgroundColor3 = Color3.fromRGB(25, 25, 25),
             Size = UDim2.new(1, 0, 0, 30),
@@ -285,7 +354,6 @@ local function createWindow(library, config)
             Parent = tabContainer,
             create("UICorner", { CornerRadius = UDim.new(0, 4) }),
         })
-
         local page = create("ScrollingFrame", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
@@ -304,29 +372,24 @@ local function createWindow(library, config)
                 PaddingBottom = UDim.new(0, 8),
             }),
         })
+        tabMaid:Add(tabButton)
+        tabMaid:Add(page)
 
         local function selectTab()
+            if window.destroyed then return end
             if window.CurrentTab then
                 window.CurrentTab.Button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
                 window.CurrentTab.Button.TextColor3 = Color3.fromRGB(200, 200, 200)
                 window.CurrentTab.Page.Visible = false
             end
-
-            window.CurrentTab = {
-                Button = tabButton,
-                Page = page,
-            }
+            window.CurrentTab = { Button = tabButton, Page = page }
             tabButton.BackgroundColor3 = window.ThemeCol
             tabButton.TextColor3 = Color3.fromRGB(0, 0, 0)
             page.Visible = true
         end
-
-        tabButton.MouseButton1Click:Connect(selectTab)
-        table.insert(window.Tabs, tab)
-
-        if not window.CurrentTab then
-            selectTab()
-        end
+        tabMaid:Add(tabButton.MouseButton1Click:Connect(selectTab))
+        _table.insert(window.Tabs, tab)
+        if not window.CurrentTab then selectTab() end
 
         function tab:Label(text)
             local section = create("Frame", {
@@ -351,12 +414,10 @@ local function createWindow(library, config)
                 BorderSizePixel = 0,
                 Parent = section,
             })
-
-            return {
-                Set = function(_, newText)
-                    label.Text = string.upper(tostring(newText or ""))
-                end,
-            }
+            tabMaid:Add(section)
+            return { Set = function(_, newText)
+                if label.Parent then label.Text = string.upper(tostring(newText or "")) end
+            end }
         end
 
         function tab:Button(text, callback)
@@ -372,27 +433,30 @@ local function createWindow(library, config)
                 create("UICorner", { CornerRadius = UDim.new(0, 4) }),
                 create("UIStroke", { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 }),
             })
-
-            button.MouseButton1Click:Connect(function()
-                TweenService:Create(button, TweenInfo.new(0.1), {
-                    BackgroundColor3 = window.ThemeCol,
-                }):Play()
-                task.delay(0.1, function()
-                    if button and button.Parent then
-                        TweenService:Create(button, TweenInfo.new(0.1), {
-                            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-                        }):Play()
+            tabMaid:Add(button)
+            tabMaid:Add(button.MouseButton1Click:Connect(function()
+                if tab.destroyed then return end
+                addTween(tabMaid, button, TweenInfo.new(0.1), { BackgroundColor3 = window.ThemeCol })
+                local delayThread = _task.delay(0.1, function()
+                    if button.Parent then
+                        addTween(tabMaid, button, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(30, 30, 30) })
                     end
                 end)
+                tabMaid:Add(delayThread)
                 safeCallback(callback)
-            end)
-
+            end))
             return button
         end
 
-        function tab:Toggle(text, default, callback)
+        function tab:Toggle(text, default, callback, interval)
+            local controlMaid = newMaid()
+            tabMaid:Add(controlMaid)
             local state = default == true
-            local loopThread
+            local worker
+            local destroyed = false
+            local running = false
+            local tickInterval = _math.max(0.05, tonumber(interval) or 0.15)
+
             local toggle = create("TextButton", {
                 BackgroundColor3 = Color3.fromRGB(30, 30, 30),
                 Size = UDim2.new(1, -16, 0, 35),
@@ -419,58 +483,83 @@ local function createWindow(library, config)
                 Parent = toggle,
                 create("UICorner", { CornerRadius = UDim.new(0, 4) }),
             })
+            controlMaid:Add(toggle)
 
-            local function stopLoop()
-                if loopThread then
-                    task.cancel(loopThread)
-                    loopThread = nil
+            local function stop()
+                running = false
+                if worker then
+                    pcall(_task.cancel, worker)
+                    worker = nil
                 end
             end
 
-            local function updateState(newState)
-                state = newState == true
+            local function start()
+                stop()
+                if not state or destroyed or type(callback) ~= "function" then return end
+                running = true
+                worker = _task.spawn(function()
+                    while running and state and not destroyed and toggle.Parent do
+                        safeCallback(callback, state)
+                        _task.wait(tickInterval)
+                    end
+                end)
+                controlMaid:Add(worker)
+            end
+
+            local function setState(value, emit)
+                if destroyed then return end
+                local nextState = value == true
+                local changed = state ~= nextState
+                state = nextState
                 check.BackgroundColor3 = state and window.ThemeCol or Color3.fromRGB(50, 50, 50)
-                stopLoop()
-                if state and type(callback) == "function" then
-                    loopThread = task.spawn(function()
-                        while state and toggle.Parent do
-                            safeCallback(callback)
-                            task.wait()
-                        end
-                    end)
-                end
+                if changed and emit then safeCallback(callback, state) end
+                if state then start() else stop() end
             end
 
-            toggle.MouseButton1Click:Connect(function()
-                updateState(not state)
+            local id
+            id = Registry:Create("toggle", {
+                set = function(value) setState(value, true) end,
+                get = function() return state end,
+                stop = stop,
+                destroy = function()
+                    if destroyed then return end
+                    destroyed = true
+                    stop()
+                    controlMaid:Cleanup()
+                    Registry:Remove(id)
+                end,
+            })
+            controlMaid:Add(function()
+                if Registry.entries[id] then Registry:Invoke(id, "destroy") end
             end)
+            controlMaid:Add(toggle.MouseButton1Click:Connect(function()
+                Registry:Invoke(id, "set", not Registry:Invoke(id, "get"))
+            end))
+            if state then Registry:Invoke(id, "set", true) end
 
-            if state then
-                updateState(true)
-            end
-
-            return {
-                Set = function(_, value) updateState(value) end,
-                Get = function() return state end,
+            local api = {
+                Set = function(_, value) Registry:Invoke(id, "set", value) end,
+                Get = function() return Registry:Invoke(id, "get") end,
+                Stop = function() Registry:Invoke(id, "stop") end,
+                Destroy = function() Registry:Invoke(id, "destroy") end,
             }
+            _table.insert(tab.Elements, api)
+            return api
         end
 
         function tab:Dropdown(text, options, default, callback)
             options = type(options) == "table" and options or {}
             local selected = default
             local open = false
-
+            local controlMaid = newMaid()
+            tabMaid:Add(controlMaid)
             local function contains(value)
                 for _, option in ipairs(options) do
                     if option == value then return true end
                 end
                 return false
             end
-
-            if not contains(selected) then
-                selected = options[1] or "Chưa chọn"
-            end
-
+            if not contains(selected) then selected = options[1] or "Chưa chọn" end
             local dropdown = create("Frame", {
                 BackgroundColor3 = Color3.fromRGB(30, 30, 30),
                 Size = UDim2.new(1, -16, 0, 35),
@@ -479,7 +568,6 @@ local function createWindow(library, config)
                 create("UICorner", { CornerRadius = UDim.new(0, 4) }),
                 create("UIStroke", { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 }),
             })
-            local valueLabel
             local dropdownButton = create("TextButton", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 35),
@@ -496,7 +584,7 @@ local function createWindow(library, config)
                     TextXAlignment = Enum.TextXAlignment.Left,
                 }),
             })
-            valueLabel = create("TextLabel", {
+            local valueLabel = create("TextLabel", {
                 Name = "Val",
                 BackgroundTransparency = 1,
                 Size = UDim2.new(0.5, -15, 1, 0),
@@ -520,18 +608,20 @@ local function createWindow(library, config)
                 create("UIListLayout", { Padding = UDim.new(0, 2) }),
                 create("UICorner", { CornerRadius = UDim.new(0, 4) }),
             })
-
+            controlMaid:Add(dropdown)
             local render
+            local itemMaid = newMaid()
+            controlMaid:Add(function() itemMaid:Cleanup() end)
             local function choose(option)
-                selected = option
-                open = false
+                selected, open = option, false
                 dropdown.Size = UDim2.new(1, -16, 0, 35)
                 valueLabel.Text = tostring(selected)
                 render()
                 safeCallback(callback, selected)
             end
-
             render = function()
+                itemMaid:Cleanup()
+                itemMaid = newMaid()
                 for _, child in ipairs(list:GetChildren()) do
                     if child:IsA("TextButton") then child:Destroy() end
                 end
@@ -548,21 +638,19 @@ local function createWindow(library, config)
                         Parent = list,
                         create("UICorner", { CornerRadius = UDim.new(0, 2) }),
                     })
-                    item.MouseButton1Click:Connect(function() choose(option) end)
+                    itemMaid:Add(item)
+                    itemMaid:Add(item.MouseButton1Click:Connect(function() choose(option) end))
                 end
             end
-
-            dropdownButton.MouseButton1Click:Connect(function()
+            controlMaid:Add(dropdownButton.MouseButton1Click:Connect(function()
                 open = not open
                 dropdown.Size = UDim2.new(1, -16, 0, open and 145 or 35)
-            end)
+            end))
             render()
-
             return {
-                Set = function(_, newOption)
-                    if contains(newOption) then choose(newOption) end
-                end,
+                Set = function(_, option) if contains(option) then choose(option) end end,
                 Get = function() return selected end,
+                Destroy = function() controlMaid:Cleanup() end,
             }
         end
 
@@ -571,9 +659,9 @@ local function createWindow(library, config)
             maximum = tonumber(maximum) or 100
             if maximum < minimum then minimum, maximum = maximum, minimum end
             if maximum == minimum then maximum = minimum + 1 end
-
-            local value = clamp(tonumber(default) or minimum, minimum, maximum)
-            value = math.floor(value)
+            local value = _math.floor(clamp(default, minimum, maximum))
+            local controlMaid = newMaid()
+            tabMaid:Add(controlMaid)
             local slider = create("Frame", {
                 BackgroundColor3 = Color3.fromRGB(30, 30, 30),
                 Size = UDim2.new(1, -16, 0, 50),
@@ -615,147 +703,101 @@ local function createWindow(library, config)
                 Parent = track,
                 create("UICorner", { CornerRadius = UDim.new(1, 0) }),
             })
-
+            controlMaid:Add(slider)
+            local lastCallback = 0
             local function setValue(newValue, invokeCallback)
-                value = math.floor(clamp(tonumber(newValue) or value, minimum, maximum))
+                value = _math.floor(clamp(newValue, minimum, maximum))
                 local percent = (value - minimum) / (maximum - minimum)
                 fill.Size = UDim2.new(percent, 0, 1, 0)
                 box.Text = tostring(value)
-                if invokeCallback then safeCallback(callback, value) end
-            end
 
+                if invokeCallback and os.clock() - lastCallback >= 0.1 then
+                    lastCallback = os.clock()
+                    safeCallback(callback, value)
+                end
+            end
             local function updateFromInput(input)
                 if track.AbsoluteSize.X <= 0 then return end
                 local percent = clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
                 setValue(minimum + (maximum - minimum) * percent, true)
             end
-
             local sliding = false
-            track.InputBegan:Connect(function(input)
+            controlMaid:Add(track.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1
                     or input.UserInputType == Enum.UserInputType.Touch then
                     sliding = true
                     updateFromInput(input)
                 end
-            end)
-            UserInputService.InputEnded:Connect(function(input)
+            end))
+            controlMaid:Add(UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1
                     or input.UserInputType == Enum.UserInputType.Touch then
                     sliding = false
                 end
-            end)
-            UserInputService.InputChanged:Connect(function(input)
+            end))
+            controlMaid:Add(UserInputService.InputChanged:Connect(function(input)
                 if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement
                     or input.UserInputType == Enum.UserInputType.Touch) then
                     updateFromInput(input)
                 end
-            end)
-            box.FocusLost:Connect(function()
+            end))
+            controlMaid:Add(box.FocusLost:Connect(function()
                 local number = tonumber(box.Text)
                 if number then setValue(number, true) else box.Text = tostring(value) end
-            end)
-
+            end))
             return {
                 Set = function(_, newValue) setValue(newValue, true) end,
                 Get = function() return value end,
+                Destroy = function() controlMaid:Cleanup() end,
             }
         end
-
         return tab
     end
 
     function window:Destroy()
-        if Lifecycle.Window ~= window then
-            return
+        if self.destroyed then return end
+        self.destroyed = true
+        if activeWindow == self then
+            activeWindow = nil
+            activeGui = nil
         end
-
-        if gui and gui.Parent then
-            gui:Destroy()
-        end
-        if NotificationGui and NotificationGui.Parent then
-            NotificationGui:Destroy()
-        end
-
-        NotificationGui = nil
-        NotificationContainer = nil
-        Lifecycle.Window = nil
-        Lifecycle.Gui = nil
-        Lifecycle.Status = "idle"
+        self.maid:Cleanup()
     end
 
-    Lifecycle.Window = window
-    Lifecycle.Gui = gui
-    Lifecycle.Status = "active"
+    activeWindow = window
+    activeGui = gui
     return window
 end
 
-local function createFailureWindow(errorMessage)
-    Lifecycle.Status = "failed"
-
-    local failureGui = create("ScreenGui", {
-        Name = "TCHub_Failure",
-        ResetOnSpawn = false,
-        Parent = TargetParent,
-    })
-    local failureLabel = create("TextLabel", {
-        BackgroundColor3 = Color3.fromRGB(25, 25, 25),
-        Size = UDim2.new(0, 420, 0, 60),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Text = "Vui lòng tạo lại vì Gui gặp sự cố!",
-        TextColor3 = Color3.fromRGB(255, 180, 80),
-        Font = Enum.Font.GothamBold,
-        TextSize = 16,
-        TextWrapped = true,
-        Parent = failureGui,
-        create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-        create("UIStroke", { Color = Color3.fromRGB(255, 180, 80), Thickness = 1 }),
-    })
-
-    warn("Tea GUI load failed: " .. tostring(errorMessage))
-
-    return {
-        Destroy = function()
-            if failureGui and failureGui.Parent then
-                failureGui:Destroy()
-            end
-            Lifecycle.Status = "idle"
-        end,
-        Label = failureLabel,
-    }
+function TCH:Notify(title, description, duration)
+    if activeWindow and not activeWindow.destroyed then
+        activeWindow:Notify(title, description, duration)
+    end
 end
 
 function TCH:Window(config)
-    if Lifecycle.Status == "loading" then
-        warn("dupe Gui?")
+    if activeWindow and not activeWindow.destroyed then
+        warn("Tea GUI: window đã tồn tại")
         return nil
     end
+    local oldGui = TargetParent:FindFirstChild("TCHub")
+    if oldGui then oldGui:Destroy() end
+    local oldNoti = TargetParent:FindFirstChild("TCHub_Noti")
+    if oldNoti then oldNoti:Destroy() end
 
-    if Lifecycle.Status == "active" or TargetParent:FindFirstChild("TCHub") then
-        warn("Lỗi đã có Gui đang hoạt động!")
-        return nil
-    end
-
-    local previousFailure = TargetParent:FindFirstChild("TCHub_Failure")
-    if previousFailure then
-        previousFailure:Destroy()
-    end
-
-    Lifecycle.Status = "loading"
     local ok, result = xpcall(function()
         return createWindow(self, config)
-    end, debug.traceback)
+    end, function(err)
+        return tostring(err)
+    end)
+    if ok then return result end
 
-    if ok then
-        return result
-    end
-
-    if Lifecycle.Gui and Lifecycle.Gui.Parent then
-        Lifecycle.Gui:Destroy()
-    end
-    Lifecycle.Gui = nil
-    Lifecycle.Window = nil
-    return createFailureWindow(result)
+    warn("Tea GUI load failed: " .. tostring(result))
+    return {
+        Destroy = function() end,
+        Label = nil,
+        Error = result,
+    }
 end
 
 return TCH
