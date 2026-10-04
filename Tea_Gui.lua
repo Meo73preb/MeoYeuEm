@@ -1,4 +1,4 @@
--- Tea Cat GUI Library - Beta v1.0
+-- Tea Cat GUI Library - Beta v1.1
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -168,9 +168,6 @@ end
 
 local function addTween(maid, instance, info, properties)
     local tween = TweenService:Create(instance, info, properties)
-    maid:Add(function()
-        pcall(function() tween:Cancel() end)
-    end)
     tween:Play()
     return tween
 end
@@ -448,14 +445,11 @@ local function createWindow(library, config)
             return button
         end
 
-        function tab:Toggle(text, default, callback, interval)
+        function tab:Toggle(text, default, callback)
             local controlMaid = newMaid()
             tabMaid:Add(controlMaid)
             local state = default == true
-            local worker
             local destroyed = false
-            local running = false
-            local tickInterval = _math.max(0.05, tonumber(interval) or 0.15)
 
             local toggle = create("TextButton", {
                 BackgroundColor3 = Color3.fromRGB(30, 30, 30),
@@ -485,27 +479,6 @@ local function createWindow(library, config)
             })
             controlMaid:Add(toggle)
 
-            local function stop()
-                running = false
-                if worker then
-                    pcall(_task.cancel, worker)
-                    worker = nil
-                end
-            end
-
-            local function start()
-                stop()
-                if not state or destroyed or type(callback) ~= "function" then return end
-                running = true
-                worker = _task.spawn(function()
-                    while running and state and not destroyed and toggle.Parent do
-                        safeCallback(callback, state)
-                        _task.wait(tickInterval)
-                    end
-                end)
-                controlMaid:Add(worker)
-            end
-
             local function setState(value, emit)
                 if destroyed then return end
                 local nextState = value == true
@@ -513,18 +486,15 @@ local function createWindow(library, config)
                 state = nextState
                 check.BackgroundColor3 = state and window.ThemeCol or Color3.fromRGB(50, 50, 50)
                 if changed and emit then safeCallback(callback, state) end
-                if state then start() else stop() end
             end
 
             local id
             id = Registry:Create("toggle", {
                 set = function(value) setState(value, true) end,
                 get = function() return state end,
-                stop = stop,
                 destroy = function()
                     if destroyed then return end
                     destroyed = true
-                    stop()
                     controlMaid:Cleanup()
                     Registry:Remove(id)
                 end,
@@ -535,12 +505,9 @@ local function createWindow(library, config)
             controlMaid:Add(toggle.MouseButton1Click:Connect(function()
                 Registry:Invoke(id, "set", not Registry:Invoke(id, "get"))
             end))
-            if state then Registry:Invoke(id, "set", true) end
-
             local api = {
                 Set = function(_, value) Registry:Invoke(id, "set", value) end,
                 Get = function() return Registry:Invoke(id, "get") end,
-                Stop = function() Registry:Invoke(id, "stop") end,
                 Destroy = function() Registry:Invoke(id, "destroy") end,
             }
             _table.insert(tab.Elements, api)
@@ -732,7 +699,10 @@ local function createWindow(library, config)
             controlMaid:Add(UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1
                     or input.UserInputType == Enum.UserInputType.Touch then
-                    sliding = false
+                    if sliding then
+                        sliding = false
+                        safeCallback(callback, value)
+                    end
                 end
             end))
             controlMaid:Add(UserInputService.InputChanged:Connect(function(input)
@@ -777,8 +747,7 @@ end
 
 function TCH:Window(config)
     if activeWindow and not activeWindow.destroyed then
-        warn("Tea GUI: window đã tồn tại")
-        return nil
+        activeWindow:Destroy()
     end
     local oldGui = TargetParent:FindFirstChild("TCHub")
     if oldGui then oldGui:Destroy() end
@@ -793,11 +762,11 @@ function TCH:Window(config)
     if ok then return result end
 
     warn("Tea GUI load failed: " .. tostring(result))
-    return {
-        Destroy = function() end,
-        Label = nil,
-        Error = result,
-    }
+    local stub = {}
+    local noop = function() return stub end
+    setmetatable(stub, { __index = function() return noop end })
+    stub.Error = result
+    return stub
 end
 
 return TCH
