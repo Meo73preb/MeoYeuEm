@@ -21,13 +21,18 @@ local function clamp(value, minimum, maximum)
 end
 
 local function getTargetParent()
-    local ok = pcall(function()
-        return CoreGui.Name
+    -- Có thể đọc CoreGui nhưng không được ghi, nên kiểm tra quyền parent thực tế.
+    local canUseCoreGui = pcall(function()
+        local probe = Instance.new("ScreenGui")
+        probe.Name = "TeaCatPermissionProbe"
+        probe.Parent = CoreGui
+        probe:Destroy()
     end)
-    if ok then
-        return CoreGui
-    end
-    return Players.LocalPlayer:WaitForChild("PlayerGui")
+    if canUseCoreGui then return CoreGui end
+
+    local player = Players.LocalPlayer
+    if player then return player:WaitForChild("PlayerGui") end
+    return CoreGui
 end
 
 local TargetParent = getTargetParent()
@@ -45,18 +50,38 @@ local function newMaid()
         return resource
     end
 
+    function maid:Remove(resource)
+        for index = #self.tasks, 1, -1 do
+            if self.tasks[index] == resource then
+                _table.remove(self.tasks, index)
+                return true
+            end
+        end
+        return false
+    end
+
     function maid:_cleanupOne(resource)
         local resourceType = type(resource)
         if resourceType == "function" then
             pcall(resource)
         elseif resourceType == "thread" then
             pcall(_task.cancel, resource)
-        elseif resourceType == "table" and type(resource.Destroy) == "function" then
-            pcall(function() resource:Destroy() end)
+        elseif resourceType == "table" then
+            if type(resource.Cleanup) == "function" then
+                pcall(function() resource:Cleanup() end)
+            elseif type(resource.Disconnect) == "function" then
+                pcall(function() resource:Disconnect() end)
+            elseif type(resource.Destroy) == "function" then
+                pcall(function() resource:Destroy() end)
+            elseif type(resource.Cancel) == "function" then
+                pcall(function() resource:Cancel() end)
+            end
         elseif resourceType == "userdata" then
             pcall(function()
                 if resource.Disconnect then
                     resource:Disconnect()
+                elseif resource.Cancel then
+                    resource:Cancel()
                 elseif resource.Destroy then
                     resource:Destroy()
                 end
@@ -67,9 +92,11 @@ local function newMaid()
     function maid:Cleanup()
         if self.destroyed then return end
         self.destroyed = true
-        for index = #self.tasks, 1, -1 do
-            self:_cleanupOne(self.tasks[index])
-            self.tasks[index] = nil
+        local tasks = self.tasks
+        self.tasks = {}
+        for index = #tasks, 1, -1 do
+            self:_cleanupOne(tasks[index])
+            tasks[index] = nil
         end
     end
 
@@ -78,15 +105,20 @@ end
 
 local function create(className, properties)
     local instance = Instance.new(className)
+    local parent
     for key, value in pairs(properties or {}) do
-        if type(key) == "number" then
-            if typeof(value) == "Instance" then
-                value.Parent = instance
-            end
-        else
+        if key == "Parent" then
+            parent = value
+        elseif type(key) ~= "number" then
             instance[key] = value
         end
     end
+    for key, value in pairs(properties or {}) do
+        if type(key) == "number" and typeof(value) == "Instance" then
+            value.Parent = instance
+        end
+    end
+    if parent ~= nil then instance.Parent = parent end
     return instance
 end
 
@@ -114,11 +146,43 @@ function TCH:Config(options)
         defaults = type(options.defaults) == "table" and options.defaults or {},
         path = type(options.path) == "string" and options.path or nil,
         namespace = tostring(options.namespace or "TeaCat"),
+        api = type(options.api) == "table" and options.api or nil,
     }
 
     local function backend(name)
-        local value = rawget(_G, name)
-        return type(value) == "function" and value or nil
+        if store.api and type(store.api[name]) == "function" then
+            return store.api[name]
+        end
+
+        local environments, seen = {}, {}
+        local function addEnvironment(environment)
+            if type(environment) == "table" and not seen[environment] then
+                seen[environment] = true
+                environments[#environments + 1] = environment
+            end
+        end
+
+        addEnvironment(_G)
+        local ok, environment = pcall(function()
+            if type(getgenv) == "function" then return getgenv() end
+        end)
+        if ok then addEnvironment(environment) end
+
+        ok, environment = pcall(function() return shared end)
+        if ok then addEnvironment(environment) end
+
+        if type(getfenv) == "function" then
+            ok, environment = pcall(getfenv, 0)
+            if ok then addEnvironment(environment) end
+            ok, environment = pcall(getfenv, 1)
+            if ok then addEnvironment(environment) end
+        end
+
+        for _, candidate in ipairs(environments) do
+            local lookupOk, value = pcall(function() return candidate[name] end)
+            if lookupOk and type(value) == "function" then return value end
+        end
+        return nil
     end
 
     function store:SetSource(source)
@@ -205,13 +269,23 @@ function TCH:Config(options)
 
     function store:Save()
         if not self.path then return true end
-        local writefile, isfolder, makefolder = backend("writefile"), backend("isfolder"), backend("makefolder")
-        if not writefile or not isfolder or not makefolder then return false, "filesystem API unavailable" end
+        local writefile = backend("writefile")
+        if not writefile then return false, "writefile API unavailable" end
         local folder = self.path:match("^(.*)/[^/]+$")
         if folder and folder ~= "" then
-            local current = ""
+            local isfolder, makefolder = backend("isfolder"), backend("makefolder")
+            if not isfolder or not makefolder then
+                return false, "folder API unavailable"
+            end
+            local current = folder:sub(1, 1) == "/" and "/" or ""
             for part in folder:gmatch("[^/]+") do
-                current = current == "" and part or current .. "/" .. part
+                if current == "" then
+                    current = part
+                elseif current == "/" then
+                    current = current .. part
+                else
+                    current = current .. "/" .. part
+                end
                 local okFolder, exists = pcall(isfolder, current)
                 if not okFolder then return false, exists end
                 if not exists then
@@ -228,7 +302,7 @@ function TCH:Config(options)
 
     function store:SaveDebounced(delaySeconds)
         if self._saveThread then pcall(_task.cancel, self._saveThread) end
-        self._saveThread = _task.delay(tonumber(delaySeconds) or 0.25, function()
+        self._saveThread = _task.delay(tonumber(delaySeconds) or 0.5, function()
             self._saveThread = nil
             local ok, err = self:Save()
             if not ok then warn("Tea Config save failed: " .. tostring(err)) end
@@ -270,12 +344,25 @@ function TCH:Loop(signalName)
             if not active then return end
             elapsed = elapsed + (tonumber(dt) or 0)
             if interval and interval > 0 and elapsed < interval then return end
-            elapsed = 0
+            if interval and interval > 0 then
+                elapsed = elapsed % interval
+            else
+                elapsed = 0
+            end
             safeCallback(callback, dt)
         end
         if not manager.connection then
             manager.connection = signal:Connect(function(dt)
-                for _, job in pairs(manager.jobs) do job(dt) end
+                -- Snapshot để job có thể Disconnect an toàn ngay trong callback.
+                local snapshot = {}
+                for jobId, job in pairs(manager.jobs) do
+                    snapshot[#snapshot + 1] = { id = jobId, callback = job }
+                end
+                for _, entry in ipairs(snapshot) do
+                    if manager.jobs[entry.id] == entry.callback then
+                        entry.callback(dt)
+                    end
+                end
             end)
         end
         return {
@@ -299,6 +386,14 @@ local function makeDraggable(maid, dragObject, moveObject)
     local dragInput
     local startInputPosition
     local startGuiPosition
+    local dragEndConnection
+
+    maid:Add(function()
+        if dragEndConnection then
+            dragEndConnection:Disconnect()
+            dragEndConnection = nil
+        end
+    end)
 
     maid:Add(dragObject.InputBegan:Connect(function(input)
         local inputType = input.UserInputType
@@ -309,11 +404,14 @@ local function makeDraggable(maid, dragObject, moveObject)
         dragging = true
         startInputPosition = input.Position
         startGuiPosition = moveObject.Position
-        maid:Add(input.Changed:Connect(function()
+        if dragEndConnection then dragEndConnection:Disconnect() end
+        dragEndConnection = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
+                dragEndConnection:Disconnect()
+                dragEndConnection = nil
             end
-        end))
+        end)
     end))
 
     maid:Add(dragObject.InputChanged:Connect(function(input)
@@ -338,6 +436,15 @@ end
 
 local function addTween(maid, instance, info, properties)
     local tween = TweenService:Create(instance, info, properties)
+    maid:Add(tween)
+    local completedConnection
+    completedConnection = tween.Completed:Connect(function()
+        if completedConnection then
+            completedConnection:Disconnect()
+            completedConnection = nil
+        end
+        maid:Remove(tween)
+    end)
     tween:Play()
     return tween
 end
@@ -372,18 +479,23 @@ local function buildNotification(window, title, description, duration)
         }),
     })
     window.maid:Add(notification)
-    local delayThread = _task.delay(_math.max(0, tonumber(duration) or 3), function()
+    local delayThread
+    delayThread = _task.delay(_math.max(0, tonumber(duration) or 3), function()
         if notification.Parent then notification:Destroy() end
+        window.maid:Remove(notification)
+        if delayThread then window.maid:Remove(delayThread) end
     end)
     window.maid:Add(delayThread)
 end
 
 local function createWindow(library, config)
-    config = config or {}
+    config = type(config) == "table" and config or {}
     local windowMaid = newMaid()
+    local themeColor = typeof(config.Color) == "Color3"
+        and config.Color or Color3.fromRGB(0, 255, 128)
     local window = {
         Title = tostring(config.Title or "Tea Cat Hub"),
-        ThemeCol = config.Color or Color3.fromRGB(0, 255, 128),
+        ThemeCol = themeColor,
         Tabs = {},
         CurrentTab = nil,
         maid = windowMaid,
@@ -604,10 +716,12 @@ local function createWindow(library, config)
             tabMaid:Add(button.MouseButton1Click:Connect(function()
                 if tab.destroyed then return end
                 addTween(tabMaid, button, TweenInfo.new(0.1), { BackgroundColor3 = window.ThemeCol })
-                local delayThread = _task.delay(0.1, function()
+                local delayThread
+                delayThread = _task.delay(0.1, function()
                     if button.Parent then
                         addTween(tabMaid, button, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(30, 30, 30) })
                     end
+                    if delayThread then tabMaid:Remove(delayThread) end
                 end)
                 tabMaid:Add(delayThread)
                 safeCallback(callback)
@@ -672,7 +786,10 @@ local function createWindow(library, config)
             end))
             local api = {
                 Set = function(_, value) setState(value, true) end,
-                Get = function() return destroyed and nil or state end,
+                Get = function()
+                    if destroyed then return nil end
+                    return state
+                end,
                 Destroy = destroyControl,
                 IsDestroyed = function() return destroyed end,
             }
@@ -838,14 +955,17 @@ local function createWindow(library, config)
             })
             controlMaid:Add(slider)
             local lastCallback = 0
-            local function setValue(newValue, invokeCallback)
+            local function setValue(newValue, invokeCallback, forceCallback)
+                local previousValue = value
                 value = _math.floor(clamp(newValue, minimum, maximum))
                 local percent = (value - minimum) / (maximum - minimum)
                 fill.Size = UDim2.new(percent, 0, 1, 0)
                 box.Text = tostring(value)
 
-                if invokeCallback and os.clock() - lastCallback >= 0.1 then
-                    lastCallback = os.clock()
+                local now = os.clock()
+                if invokeCallback and value ~= previousValue
+                    and (forceCallback or now - lastCallback >= 0.1) then
+                    lastCallback = now
                     safeCallback(callback, value)
                 end
             end
@@ -879,10 +999,10 @@ local function createWindow(library, config)
             end))
             controlMaid:Add(box.FocusLost:Connect(function()
                 local number = tonumber(box.Text)
-                if number then setValue(number, true) else box.Text = tostring(value) end
+                if number then setValue(number, true, true) else box.Text = tostring(value) end
             end))
             return {
-                Set = function(_, newValue) setValue(newValue, true) end,
+                Set = function(_, newValue) setValue(newValue, true, true) end,
                 Get = function() return value end,
                 Destroy = function() controlMaid:Cleanup() end,
             }

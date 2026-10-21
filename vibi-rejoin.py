@@ -5,300 +5,270 @@ import json
 import sqlite3
 import subprocess
 import requests
-import threading
-import websocket # Cần cài đặt: pip install websocket-client
+import gc
+from threading import Lock, Event
 
-# Các đường dẫn mặc định
+# Path Configurations
 TERMUX_DOWNLOAD_DIR = "/sdcard/Download"
 COOKIE_FILE_PATH = os.path.join(TERMUX_DOWNLOAD_DIR, "cookie.txt")
-DISCORD_TOKEN_PATH = os.path.join(TERMUX_DOWNLOAD_DIR, "discord_token.txt")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-APPSTORAGE_TEMPLATE = os.path.join(SCRIPT_DIR, "appStorage.json")
-COOKIES_DB_TEMPLATE = os.path.join(SCRIPT_DIR, "Cookies.db")
 
-ROBLOX_PACKAGE = "com.roblox.client"
-TARGET_APPSTORAGE = f"/data/data/{ROBLOX_PACKAGE}/files/appData/LocalStorage/appStorage.json"
-TARGET_COOKIES_DB = f"/data/data/{ROBLOX_PACKAGE}/app_webview/Default/Cookies"
+WORK_DIR = os.path.join(SCRIPT_DIR, "vibi_data")
+os.makedirs(WORK_DIR, exist_ok=True)
 
-# ID Application Discord mặc định cho Roblox RPC
-DROIDBLOX_APP_ID = "1379313837169311825"
+SERVER_LINKS_FILE = os.path.join(WORK_DIR, "server-links.json")
+ACCOUNTS_FILE = os.path.join(WORK_DIR, "accounts.json")
+CONFIG_FILE = os.path.join(WORK_DIR, "config.json")
 
-def run_root_cmd(cmd):
-    """Chạy lệnh Shell dưới quyền Root (su)"""
-    try:
-        result = subprocess.run(f"su -c '{cmd}'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return result.stdout.strip()
-    except Exception as e:
-        print(f"[!] Lỗi khi chạy lệnh root: {e}")
-        return ""
+# Executor workspace locations for heartbeat monitoring
+EXECUTORS = {
+    'Fluxus': '/storage/emulated/0/FluxusZ/',
+    'Neutron': '/storage/emulated/0/Neutron/',
+    'JJsploit': '/storage/emulated/0/JJsploit/',
+    'Delta': '/storage/emulated/0/Delta/',
+    'Codex': '/storage/emulated/0/Codex/',
+    'Arceus X': '/storage/emulated/0/Arceus X/',
+    'Cryptic': '/storage/emulated/0/Cryptic/',
+    'KRNL': '/storage/emulated/0/PunkX/',
+    'Trigon': '/storage/emulated/0/Trigon/',
+    'FrostWare': '/storage/emulated/0/FrostWare/',
+    'Evon': '/storage/emulated/0/Evon/'
+}
 
-def kill_roblox():
-    """Tắt ứng dụng Roblox nếu đang chạy"""
-    print("[*] Đang tắt Roblox...")
-    run_root_cmd(f"am force-stop {ROBLOX_PACKAGE}")
-    time.sleep(1)
+WORKSPACE_PATHS = [os.path.join(path, "workspace") for path in EXECUTORS.values()] + \
+                  [os.path.join(path, "Workspace") for path in EXECUTORS.values()]
 
-def get_cookie():
-    """Đọc cookie từ thư mục Download hoặc tạo file mới nếu chưa có"""
-    if not os.path.exists(COOKIE_FILE_PATH):
+class SystemUtils:
+    @staticmethod
+    def run_root_cmd(cmd):
+        """Execute terminal command with elevated root privileges"""
         try:
-            with open(COOKIE_FILE_PATH, "w", encoding="utf-8") as f:
-                f.write("")
+            res = subprocess.run(f"su -c '{cmd}'", shell=True, capture_output=True, text=True)
+            return res.stdout.strip()
         except Exception as e:
-            print(f"[!] Lỗi khi tạo file cookie: {e}")
-        print(f"[!] File cookie.txt chưa có nội dung. Vui lòng nhập cookie tại: {COOKIE_FILE_PATH}")
-        return None
+            print(f"[!] Root command error: {e}")
+            return ""
 
-    with open(COOKIE_FILE_PATH, "r", encoding="utf-8") as f:
-        cookie = f.read().strip()
+    @staticmethod
+    def fix_permissions(package_name):
+        """Fix app directory ownership so Roblox can access SQLite DBs"""
+        uid = SystemUtils.run_root_cmd(f"stat -c '%u:%g' /data/data/{package_name}")
+        if uid:
+            SystemUtils.run_root_cmd(f"chown -R {uid} /data/data/{package_name}/files")
+            SystemUtils.run_root_cmd(f"chown -R {uid} /data/data/{package_name}/app_webview")
 
-    if not cookie:
-        print(f"[!] Vui lòng nhập cookie tại file {COOKIE_FILE_PATH}")
-        return None
+class RobloxManager:
+    @staticmethod
+    def get_installed_packages(prefix="com.roblox"):
+        """Get all matching Roblox package clones installed on device"""
+        packages = []
+        out = SystemUtils.run_root_cmd(f"pm list packages {prefix}")
+        for line in out.splitlines():
+            line = line.strip().replace("package:", "")
+            if line:
+                packages.append(line)
+        return packages if packages else ["com.roblox.client"]
 
-    if ":" in cookie and len(cookie.split(":")) >= 3:
-        parts = cookie.split(":")
-        cookie = parts[2] + parts[3]
-        
-    return cookie
+    @staticmethod
+    def kill_package(package_name):
+        """Force stop specific package instance"""
+        SystemUtils.run_root_cmd(f"am force-stop {package_name}")
 
-def validate_cookie(cookie):
-    """Kiểm tra Cookie qua API Roblox và lấy UserID, Username"""
-    url = "https://users.roblox.com/v1/users/authenticated"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Android; Mobile)",
-        "Cookie": f".ROBLOSECURITY={cookie}"
-    }
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            data = res.json()
-            return str(data.get("id")), data.get("name")
+    @staticmethod
+    def kill_all_roblox(prefix="com.roblox"):
+        """Force stop all running Roblox instances"""
+        for pkg in RobloxManager.get_installed_packages(prefix):
+            RobloxManager.kill_package(pkg)
+
+    @staticmethod
+    def launch_game(package_name, place_or_link):
+        """Launch Roblox game instance via Intent"""
+        RobloxManager.kill_package(package_name)
+        time.sleep(1)
+
+        # Process URI link or raw place ID
+        if place_or_link.startswith("roblox://"):
+            intent_url = place_or_link
+        elif place_or_link.isdigit():
+            intent_url = f"roblox://placeID={place_or_link}"
         else:
-            print(f"[!] Cookie không hợp lệ hoặc đã hết hạn (Status code: {res.status_code})")
-            return None, None
-    except Exception as e:
-        print(f"[!] Lỗi kết nối API Roblox: {e}")
+            intent_url = place_or_link
+
+        print(f"[*] Launching {package_name} -> {intent_url}")
+        
+        # Method 1: Protocol Launch Activity
+        cmd = f"am start -a android.intent.action.VIEW -n '{package_name}/com.roblox.client.ActivityProtocolLaunch' -d '{intent_url}'"
+        res = SystemUtils.run_root_cmd(cmd)
+
+        if "Error" in res or not res:
+            # Fallback 2: General View Action
+            cmd_alt = f"am start -a android.intent.action.VIEW -d '{intent_url}' -p {package_name}"
+            SystemUtils.run_root_cmd(cmd_alt)
+
+class SessionInjector:
+    @staticmethod
+    def validate_cookie(cookie):
+        """Check .ROBLOSECURITY validity via Roblox Users API"""
+        url = "https://users.roblox.com/v1/users/authenticated"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Android; Mobile)",
+            "Cookie": f".ROBLOSECURITY={cookie}"
+        }
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                return str(data.get("id")), data.get("name")
+        except Exception as e:
+            print(f"[!] Cookie validation network error: {e}")
         return None, None
 
-def login_with_cookie():
-    """Chức năng Login Roblox bằng Cookie"""
-    kill_roblox()
-    
-    cookie = get_cookie()
-    if not cookie:
-        return
+    @staticmethod
+    def inject_all_packages():
+        """Inject cookie & session data across all detected Roblox packages"""
+        if not os.path.exists(COOKIE_FILE_PATH):
+            print(f"[!] Missing cookie file: {COOKIE_FILE_PATH}")
+            return
 
-    print("[*] Đang xác thực cookie...")
-    user_id, username = validate_cookie(cookie)
-    if not user_id or not username:
-        return
+        with open(COOKIE_FILE_PATH, "r", encoding="utf-8") as f:
+            raw_cookie = f.read().strip()
 
-    print(f"[+] Xác thực thành công: {username} (ID: {user_id})")
+        if ":" in raw_cookie and len(raw_cookie.split(":")) >= 3:
+            parts = raw_cookie.split(":")
+            cookie = parts[2] + parts[3]
+        else:
+            cookie = raw_cookie
 
-    # 1. Tạo và Cập nhật file appStorage.json tạm thời
-    temp_appstorage = os.path.join(SCRIPT_DIR, "temp_appStorage.json")
-    if os.path.exists(APPSTORAGE_TEMPLATE):
-        with open(APPSTORAGE_TEMPLATE, "r", encoding="utf-8") as f:
-            app_data = json.load(f)
-    else:
-        app_data = {}
+        user_id, username = SessionInjector.validate_cookie(cookie)
+        if not user_id:
+            print("[!] Cookie is invalid or expired.")
+            return
 
-    app_data["UserId"] = str(user_id)
-    app_data["Username"] = str(username)
-    
-    with open(temp_appstorage, "w", encoding="utf-8") as f:
-        json.dump(app_data, f)
+        print(f"[+] Authenticated User: {username} (ID: {user_id})")
+        packages = RobloxManager.get_installed_packages()
 
-    # 2. Tạo và Cập nhật file Cookies.db tạm thời
-    temp_cookies_db = os.path.join(SCRIPT_DIR, "temp_Cookies.db")
-    if os.path.exists(COOKIES_DB_TEMPLATE):
-        subprocess.run(f"cp '{COOKIES_DB_TEMPLATE}' '{temp_cookies_db}'", shell=True)
-        try:
-            conn = sqlite3.connect(temp_cookies_db)
-            cursor = conn.cursor()
-            cursor.execute("UPDATE cookies SET value=? WHERE name='.ROBLOSECURITY'", (cookie,))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            print(f"[!] Lỗi ghi đè SQLite DB: {e}")
+        for pkg in packages:
+            print(f"[*] Injecting session into {pkg}...")
+            RobloxManager.kill_package(pkg)
 
-    # 3. Chép đè vào hệ thống bằng quyền root
-    print("[*] Đang nạp dữ liệu đăng nhập vào hệ thống Roblox...")
-    run_root_cmd(f"mkdir -p /data/data/{ROBLOX_PACKAGE}/files/appData/LocalStorage")
-    run_root_cmd(f"mkdir -p /data/data/{ROBLOX_PACKAGE}/app_webview/Default")
-    
-    run_root_cmd(f"cp '{temp_appstorage}' '{TARGET_APPSTORAGE}'")
-    if os.path.exists(temp_cookies_db):
-        run_root_cmd(f"cp '{temp_cookies_db}' '{TARGET_COOKIES_DB}'")
+            # Paths
+            target_appstorage_dir = f"/data/data/{pkg}/files/appData/LocalStorage"
+            target_cookies_dir = f"/data/data/{pkg}/app_webview/Default"
+            target_appstorage = f"{target_appstorage_dir}/appStorage.json"
+            target_cookies_db = f"{target_cookies_dir}/Cookies"
 
-    run_root_cmd(f"chmod 666 '{TARGET_APPSTORAGE}'")
-    run_root_cmd(f"chmod 666 '{TARGET_COOKIES_DB}'")
+            # Prepare temp appStorage.json
+            app_data = {"UserId": str(user_id), "Username": str(username), "IsUnder13": "false"}
+            temp_json = os.path.join(SCRIPT_DIR, "temp_appStorage.json")
+            with open(temp_json, "w", encoding="utf-8") as f:
+                json.dump(app_data, f)
 
-    if os.path.exists(temp_appstorage): os.remove(temp_appstorage)
-    if os.path.exists(temp_cookies_db): os.remove(temp_cookies_db)
+            # Prepare temp Cookies.db
+            temp_db = os.path.join(SCRIPT_DIR, "temp_Cookies.db")
+            template_db = os.path.join(SCRIPT_DIR, "Cookies.db")
 
-    print("[*] Đang khởi chạy Roblox...")
-    time.sleep(2)
-    run_root_cmd(f"monkey -p {ROBLOX_PACKAGE} -c android.intent.category.LAUNCHER 1")
-    time.sleep(5)
+            if os.path.exists(template_db):
+                subprocess.run(f"cp '{template_db}' '{temp_db}'", shell=True)
+                try:
+                    conn = sqlite3.connect(temp_db)
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE cookies SET value=? WHERE host_key='.roblox.com' AND name='.ROBLOSECURITY'", (cookie,))
+                    conn.commit()
+                    conn.close()
+                except Exception as e:
+                    print(f"[!] SQLite Update error: {e}")
 
-def rejoin_roblox():
-    """Chức năng Rejoin vào Game Roblox (Đã sửa lỗi URI Intent)"""
-    place_id = input("Nhập Place ID (Game ID) muốn vào: ").strip()
-    if not place_id.isdigit():
-        print("[!] Place ID phải là dãy số.")
-        return
+            # Push files via Root
+            SystemUtils.run_root_cmd(f"mkdir -p '{target_appstorage_dir}'")
+            SystemUtils.run_root_cmd(f"mkdir -p '{target_cookies_dir}'")
+            SystemUtils.run_root_cmd(f"cp '{temp_json}' '{target_appstorage}'")
+            if os.path.exists(temp_db):
+                SystemUtils.run_root_cmd(f"cp '{temp_db}' '{target_cookies_db}'")
 
-    kill_roblox()
-    print(f"[*] Đang vào lại game (Place ID: {place_id})...")
-    
-    # Sửa lỗi: Sử dụng URI scheme intent chuẩn cho Roblox Android
-    intent_url = f"roblox://placeID={place_id}"
-    cmd = f"am start -a android.intent.action.VIEW -d '{intent_url}' {ROBLOX_PACKAGE}"
-    
-    res = run_root_cmd(cmd)
-    
-    # Backup method nếu intent trực tiếp không khởi động được
-    if "Error" in res or not res:
-        print("[!] Thử phương thức khởi chạy dự phòng...")
-        cmd_alt = f"am start -W -a android.intent.action.VIEW -d 'roblox://navigation/game_details?gameId={place_id}' {ROBLOX_PACKAGE}"
-        run_root_cmd(cmd_alt)
-        
-    print("[+] Đã gửi lệnh Rejoin Roblox thành công.")
+            SystemUtils.run_root_cmd(f"chmod 666 '{target_appstorage}'")
+            SystemUtils.run_root_cmd(f"chmod 666 '{target_cookies_db}'")
+            SystemUtils.fix_permissions(pkg)
 
-def get_discord_token():
-    """Đọc Discord Token từ file hoặc nhập mới"""
-    if not os.path.exists(DISCORD_TOKEN_PATH):
-        token = input("Nhập Discord User Token: ").strip()
-        if token:
-            with open(DISCORD_TOKEN_PATH, "w", encoding="utf-8") as f:
-                f.write(token)
-            return token
-        return None
-    with open(DISCORD_TOKEN_PATH, "r", encoding="utf-8") as f:
-        return f.read().strip()
+            # Cleanup temp files
+            if os.path.exists(temp_json): os.remove(temp_json)
+            if os.path.exists(temp_db): os.remove(temp_db)
 
-def start_discord_rpc(token, game_name="Roblox", details="Playing Roblox Mobile"):
-    """Kết nối Discord Gateway và cập nhật Rich Presence (Status đang chơi)"""
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    
-    def on_message(ws, message):
-        data = json.loads(message)
-        op = data.get("op")
-        
-        # OP 10: Hello -> Gửi Identify payload kèm Presence
-        if op == 10:
-            heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
-            
-            # Start Heartbeat thread
-            def heartbeat():
-                while True:
-                    time.sleep(heartbeat_interval)
-                    ws.send(json.dumps({"op": 1, "d": None}))
-            
-            threading.Thread(target=heartbeat, daemon=True).start()
-            
-            # Identify payload với Rich Presence
-            payload = {
-                "op": 2,
-                "d": {
-                    "token": token,
-                    "properties": {
-                        "$os": "android",
-                        "$browser": "DroidBlox",
-                        "$device": "mobile"
-                    },
-                    "presence": {
-                        "activities": [{
-                            "name": game_name,
-                            "type": 0, # 0 = Playing
-                            "details": details,
-                            "state": "In-Game via Termux",
-                            "application_id": DROIDBLOX_APP_ID,
-                            "timestamps": {
-                                "start": int(time.time() * 1000)
-                            },
-                            "assets": {
-                                "large_image": "roblox",
-                                "large_text": "Roblox Mobile"
-                            }
-                        }],
-                        "status": "online",
-                        "afk": False
-                    }
-                }
-            }
-            ws.send(json.dumps(payload))
-            print("\n[+] Đã cập nhật trạng thái Discord: Đang chơi Roblox!")
+        print("[+] Session injection completed for all packages.")
 
-    def on_error(ws, error):
-        print(f"\n[!] Lỗi kết nối Discord RPC: {error}")
+class ExecutorHeartbeat:
+    @staticmethod
+    def setup_lua_script():
+        """Writes executor check file that creates user heartbeat flag in workspace"""
+        lua_code = 'task.spawn(function() local a=tostring(game.Players.LocalPlayer.UserId)..".main" while true do pcall(function() if not isfile(a) then writefile(a, "active") end end) task.wait(1) end end)'
+        for path in WORKSPACE_PATHS:
+            if os.path.exists(path):
+                autoexec_dir = os.path.join(os.path.dirname(path), "Autoexec")
+                os.makedirs(autoexec_dir, exist_ok=True)
+                with open(os.path.join(autoexec_dir, "vibi_check.lua"), "w") as f:
+                    f.write(lua_code)
 
-    def on_close(ws, close_status_code, close_msg):
-        print("\n[*] Kết nối Discord RPC đã đóng.")
+    @staticmethod
+    def is_executor_active(user_id):
+        """Check if executor dropped the active user file flag"""
+        filename = f"{user_id}.main"
+        for ws in WORKSPACE_PATHS:
+            if os.path.exists(os.path.join(ws, filename)):
+                return True
+        return False
 
-    ws = websocket.WebSocketApp(ws_url, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws_thread = threading.Thread(target=ws.run_forever, daemon=True)
-    ws_thread.start()
-
-def discord_login_rpc():
-    """Chức năng Lệnh 3: Discord Login & Live Presence"""
-    token = get_discord_token()
-    if not token:
-        print("[!] Không tìm thấy Discord Token!")
-        return
-        
-    # Kiểm tra Token bằng API
-    headers = {"Authorization": token}
-    res = requests.get("https://discord.com/api/v9/users/@me", headers=headers)
-    if res.status_code != 200:
-        print(f"[!] Token Discord không hợp lệ (Status: {res.status_code})")
-        if os.path.exists(DISCORD_TOKEN_PATH):
-            os.remove(DISCORD_TOKEN_PATH)
-        return
-        
-    user_info = res.json()
-    username = user_info.get("username", "Unknown")
-    print(f"[+] Đã đăng nhập Discord: {username}")
-    
-    game_details = input("Nhập tên Game/Chi tiết đang chơi (Bấm Enter để mặc định 'Roblox Mobile'): ").strip()
-    if not game_details:
-        game_details = "Roblox Mobile"
-        
-    start_discord_rpc(token, game_name="Roblox", details=game_details)
+    @staticmethod
+    def clear_executor_flag(user_id):
+        """Remove heartbeat flag on rejoin trigger"""
+        filename = f"{user_id}.main"
+        for ws in WORKSPACE_PATHS:
+            filepath = os.path.join(ws, filename)
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
 
 def main_menu():
-	os.system('clear')
-    print("\n=== Vibi-Rejoin Tool ===")
-    print("1. Rejoin Roblox Mobile")
-    print("2. Login bằng Cookie (từ download/cookie.txt)")
-    print("3. Discord Login & Live (Hiện trạng thái đang chơi)")
-    print("0. Thoát")
-    
-    try:
-        choice = input("Chọn chức năng (0-3): ").strip()
-        if choice == "1":
-            rejoin_roblox()
-        elif choice == "2":
-            login_with_cookie()
-        elif choice == "3":
-            discord_login_rpc()
-        elif choice == "0":
-            print("Tạm biệt!")
-            sys.exit(0)
-        else:
-            print("[!] Lựa chọn không hợp lệ, thử lại.")
-            
-    except Exception as e:
-        print(f"[!] Đã xảy ra lỗi: {e}")
-    
-    except KeyboardInterrupt:
-        print("\n[!] Đã tắt chương trình bằng phím tắt.")
+    print("\n==================================")
+    print("   VIBI REJOIN TOOL (V2 UPGRADED)  ")
+    print("==================================")
+    print("1. Start Auto Rejoin Loop")
+    print("2. Multi-Package Session Login (cookie.txt)")
+    print("3. Install Executor Heartbeat Hook")
+    print("0. Exit")
+
+    choice = input("\nSelect Option: ").strip()
+
+    if choice == "1":
+        place_id = input("Enter Place ID / Server Link: ").strip()
+        if not place_id:
+            return
+        
+        packages = RobloxManager.get_installed_packages()
+        print(f"[*] Found {len(packages)} Roblox package(s): {', '.join(packages)}")
+        
+        # Main Rejoin Loop
+        try:
+            while True:
+                for pkg in packages:
+                    RobloxManager.launch_game(pkg, place_id)
+                    time.sleep(15)
+                
+                print("[*] Monitoring instances... Sleeping 60s")
+                time.sleep(60)
+        except KeyboardInterrupt:
+            print("\n[*] Auto Rejoin stopped.")
+
+    elif choice == "2":
+        SessionInjector.inject_all_packages()
+
+    elif choice == "3":
+        ExecutorHeartbeat.setup_lua_script()
+        print("[+] Executor auto-check hook written to workspace/Autoexec paths.")
+
+    elif choice == "0":
         sys.exit(0)
 
-    time.sleep(1)
-    main_menu()
-
 if __name__ == "__main__":
-    main_menu()
+    while True:
+        main_menu()

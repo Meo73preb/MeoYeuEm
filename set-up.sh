@@ -12,11 +12,8 @@ pkg upgrade -y -o Dpkg::Options::="--force-confold"
 
 echo -e "\033[1;34m[*] Đang cài đặt python, sqlite, tsu, git, curl, wget...\033[0m"
 pkg install python sqlite tsu git curl wget -y
-
-echo -e "\033[1;34m[*] Đang cài đặt và cập nhật các thư viện Python (requests, websocket-client)...\033[0m"
 pip install --upgrade pip
-pip install requests websocket-client
-
+pip install requests psutil
 TARGET_DIR="$HOME/vibi-tool"
 echo -e "\033[1;34m[*] Tạo thư mục làm việc tại: $TARGET_DIR\033[0m"
 mkdir -p "$TARGET_DIR"
@@ -97,11 +94,6 @@ mkdir -p "$DOWNLOAD_DIR"
 if [ ! -f "$DOWNLOAD_DIR/cookie.txt" ]; then
     touch "$DOWNLOAD_DIR/cookie.txt"
     echo -e "\033[1;34m[*] Đã tạo file rỗng tại: $DOWNLOAD_DIR/cookie.txt\033[0m"
-fi
-
-if [ ! -f "$DOWNLOAD_DIR/discord_token.txt" ]; then
-    touch "$DOWNLOAD_DIR/discord_token.txt"
-    echo -e "\033[1;34m[*] Đã tạo file rỗng tại: $DOWNLOAD_DIR/discord_token.txt\033[0m"
 fi
 
 echo -e "\033[1;32m[✓] HOÀN TẤT CÀI ĐẶT TỰ ĐỘNG A-Z!\033[0m"
