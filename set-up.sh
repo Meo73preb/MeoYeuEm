@@ -10,10 +10,20 @@ echo -e "\033[1;34m[*] Đang cập nhật hệ thống và cài đặt các gói
 pkg update -y -o Dpkg::Options::="--force-confold"
 pkg upgrade -y -o Dpkg::Options::="--force-confold"
 
+# SỬA LỖI TẠI ĐÂY: Thêm clang, make, và python-build-essential để biên dịch psutil thành công
+echo -e "\033[1;34m[*] Đang cài đặt trình biên dịch hệ thống cho psutil...\033[0m"
+pkg install clang make python-build-essential -y
+
 echo -e "\033[1;34m[*] Đang cài đặt python, sqlite, tsu, git, curl, wget...\033[0m"
 pkg install python sqlite tsu git curl wget -y
-pip install --upgrade pip
+
+# Cấu hình biến môi trường tránh lỗi tương thích Clang trên một số dòng máy
+export CC=clang
+
+echo -e "\033[1;34m[*] Đang nâng cấp pip và cài đặt thư viện python...\033[0m"
+pip install --upgrade pip setuptools wheel
 pip install requests psutil
+
 TARGET_DIR="$HOME/vibi-tool"
 echo -e "\033[1;34m[*] Tạo thư mục làm việc tại: $TARGET_DIR\033[0m"
 mkdir -p "$TARGET_DIR"
