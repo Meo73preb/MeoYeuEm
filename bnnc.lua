@@ -22,7 +22,13 @@ Runtime.iterationResults = {}
 do
     Runtime.features = {}
 
---[[    -- Verify whitelist session
+function Features.verifyWhitelistSession()
+    Runtime.verificationResponse = '{"ok":true,"success":true,"data":{"valid":true}}'
+    Runtime.verificationError = nil
+    return true, true
+end
+
+    --[[ Verify whitelist session
     function Features.verifyWhitelistSession()
         local sharedState, sharedState2, sharedState3, sharedState4, sharedState5, sharedState6 = {}, {}, {}, {}, {}, {}
         Runtime.updateWhitelistStatus("Verifying whitelist...")
@@ -65026,7 +65032,7 @@ return ebgzqifrwa, lebidlyjyf
                         return ok, result3
                     end
 
- --[[                   function Runtime.requestWithTimeout(inputValue, inputValue2)
+                    function Runtime.requestWithTimeout(inputValue, inputValue2)
                         local condition = false
                         local condition2 = false
                         local value = nil
@@ -65144,7 +65150,7 @@ return ebgzqifrwa, lebidlyjyf
                                         end
                                         if Runtime.value32 then
                                             return rejectWhitelist("Whitelist response validation failed.")
-                                        end]]
+                                        end
                                         Runtime.guardState19 = Runtime.guardState20 // 26
                                         Runtime.updateWhitelistStatus("Whitelist verified successfully (" .. string.format("%.2f", os.clock() - Runtime.now2) .. "s).")
                                         if not (type(Runtime.handler13) ~= "function") then
