@@ -3,7 +3,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local Library = {}
-Library.Version = "Library-1.0"
+Library.Version = "1.0"
 
 local activeWindow
 local GUI_NAMES = { "MateCatLibraryGui", "MateCatLibraryNotifications" }
